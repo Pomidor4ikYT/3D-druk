@@ -6,6 +6,16 @@ import FileUpload from '@/components/forms/FileUpload';
 import CalculatorModal from '@/components/order/CalculatorModal';
 import DeliverySelector from '@/components/order/DeliverySelector';
 
+// Прайс для дизайнерських моделей
+const designPrices = [
+  { label: 'Концепція виробу', price: '500–2 000 грн' },
+  { label: 'Проста 3D-модель', price: '2 000–5 000 грн' },
+  { label: 'Авторський сувенір', price: '5 000–15 000 грн' },
+  { label: 'Художня модель', price: '15 000–40 000 грн' },
+  { label: 'Підготовка до кольорового друку AMS', price: '+20–40%' },
+  { label: 'Передача виключних авторських прав', price: '+50–200% до вартості моделі' },
+];
+
 export default function OrderPage() {
   const [form, setForm] = useState({
     name: '',
@@ -37,9 +47,7 @@ export default function OrderPage() {
     
     // Імітація відправки
     setTimeout(() => {
-      // Зберігаємо дані перед очищенням
       setLastOrder({ ...form });
-      
       setStatus('');
       setShowSuccess(true);
       setForm({ name: '', phone: '', email: '', delivery: 'nova', city: '', warehouse: '', description: '' });
@@ -55,6 +63,10 @@ export default function OrderPage() {
         <button onClick={() => setCalcOpen(true)} className="mt-4 text-[#c9a84c] font-semibold underline hover:no-underline">
           Попередньо розрахувати вартість →
         </button>
+        {/* Максимальний розмір */}
+        <div className="mt-4 inline-block bg-gray-100 px-6 py-2 rounded-full text-sm text-gray-700 border border-gray-200">
+          📐 Макс. розмір моделі: 25,6 × 25,6 × 25,6 см (об'єм ~16,8 л)
+        </div>
       </div>
 
       <div className="bg-white p-8 rounded-3xl shadow-xl border border-gray-100">
@@ -75,7 +87,7 @@ export default function OrderPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">Телефон *</label>
               <input
                 type="tel"
-                placeholder="+380 67 123 45 67"
+                placeholder="+38 098 0751707"
                 value={form.phone}
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}
                 required
@@ -123,10 +135,33 @@ export default function OrderPage() {
             />
           </div>
 
+          {/* Прайс дизайнерських моделей */}
+          <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+            <h4 className="font-semibold text-[#1a3c34] mb-2">💰 Ціни на дизайнерські моделі</h4>
+            <ul className="space-y-1 text-sm">
+              {designPrices.map((item, i) => (
+                <li key={i} className="flex justify-between">
+                  <span className="text-gray-600">{item.label}</span>
+                  <span className="font-semibold text-[#1a3c34]">{item.price}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Акція */}
+          <div className="bg-green-50 p-4 rounded-xl border border-green-200 text-sm text-green-800">
+            🎉 Акція: при замовленні від 10 одиниць – знижка 5%.
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Файл моделі або фото *</label>
             <FileUpload onFileSelect={setFile} />
             {file && <p className="text-[#1a3c34] text-sm mt-2">✅ Вибрано: {file.name}</p>}
+          </div>
+
+          {/* Умова повернення браку */}
+          <div className="bg-red-50 p-4 rounded-xl border border-red-200 text-sm text-red-700">
+            ⚠️ Повернення браку можливе при наявності відеофіксації несправності при розпаковці.
           </div>
 
           <Button type="submit" variant="primary" className="w-full py-4 text-lg shadow-lg shadow-[#1a3c34]/20">
@@ -138,7 +173,7 @@ export default function OrderPage() {
 
       <CalculatorModal isOpen={calcOpen} onClose={() => setCalcOpen(false)} />
 
-      {/* Модалка успіху */}
+      {/* Модалка успіху – без змін */}
       <AnimatePresence>
         {showSuccess && lastOrder && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
@@ -150,7 +185,6 @@ export default function OrderPage() {
               className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl text-center relative overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Декоративний фон */}
               <div className="absolute -top-20 -right-20 w-40 h-40 bg-[#7ec8a3]/10 rounded-full blur-2xl" />
               <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-[#c9a84c]/10 rounded-full blur-2xl" />
 

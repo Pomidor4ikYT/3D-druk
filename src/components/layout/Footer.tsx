@@ -47,13 +47,13 @@ export default function Footer() {
           <h4 className="font-bold text-[#c9a84c] mb-3">Контакти</h4>
           <ul className="space-y-2 text-sm text-gray-300">
             <li>
-              <a href="tel:+380671234567" className="hover:text-[#7ec8a3] transition">
-                📞 +380 (67) 123-45-67
+              <a href="tel:+380980751707" className="hover:text-[#7ec8a3] transition">
+                📞 +38 098 0751707
               </a>
             </li>
             <li>
-              <a href="mailto:hello@3dprint.com" className="hover:text-[#7ec8a3] transition">
-                ✉️ hello@3dprint.com
+              <a href="mailto:komarnytskiy.yura@gmail.com" className="hover:text-[#7ec8a3] transition">
+                ✉️ komarnytskiy.yura@gmail.com
               </a>
             </li>
             <li>
@@ -68,6 +68,16 @@ export default function Footer() {
             </li>
             <li>
               <a
+                href="https://wa.me/380980751707"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-[#7ec8a3] transition"
+              >
+                💬 WhatsApp
+              </a>
+            </li>
+            <li>
+              <a
                 href="https://instagram.com/3d_print_ua"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -77,7 +87,7 @@ export default function Footer() {
               </a>
             </li>
           </ul>
-          <p className="text-gray-400 text-xs mt-4">Пн-Пт 9:00-18:00</p>
+          <p className="text-gray-400 text-xs mt-4">82400, м. Стрий, вул. Народна, 8</p>
         </div>
       </div>
     </footer>

@@ -57,7 +57,7 @@ export default function Process() {
           transition={{ duration: 0.5 }}
           className="text-center max-w-2xl mx-auto mb-12"
         >
-          <h2 className="text-[#1a3c34]">Як ми працюємо</h2>
+          <h2 className="text-[#1a3c34] text-4xl md:text-5xl font-heading font-bold">Як ми працюємо</h2>
           <p className="text-gray-600 text-lg">
             Оберіть крок, щоб дізнатися деталі
           </p>
@@ -85,7 +85,7 @@ export default function Process() {
                     }`}
                   >
                     <div
-                      className={`w-16 h-16 rounded-full flex items-center justify-center text-3xl transition-all duration-200 ${
+                      className={`w-20 h-20 rounded-full flex items-center justify-center text-4xl transition-all duration-200 ${
                         isActive
                           ? 'bg-[#2e7d32] text-white shadow-xl shadow-[#2e7d32]/30'
                           : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
@@ -94,7 +94,7 @@ export default function Process() {
                       {step.icon}
                     </div>
                     <span
-                      className={`text-sm font-bold transition-colors duration-200 ${
+                      className={`text-lg font-bold transition-colors duration-200 ${
                         isActive ? 'text-[#2e7d32]' : 'text-gray-400'
                       }`}
                     >
@@ -122,11 +122,11 @@ export default function Process() {
                 className="mt-8 p-8 bg-gray-50 rounded-3xl shadow-lg border border-gray-200 max-w-3xl mx-auto"
               >
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-full bg-[#2e7d32] flex items-center justify-center text-white text-2xl flex-shrink-0">
+                  <div className="w-14 h-14 rounded-full bg-[#2e7d32] flex items-center justify-center text-white text-3xl flex-shrink-0">
                     {steps.find(s => s.id === active)?.icon}
                   </div>
                   <div>
-                    <h3 className="text-2xl font-bold text-[#1a3c34]">
+                    <h3 className="text-3xl font-bold text-[#1a3c34]">
                       {steps.find(s => s.id === active)?.title}
                     </h3>
                     <p className="text-gray-600 text-lg mt-2">

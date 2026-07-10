@@ -35,7 +35,7 @@ const features = [
     icon: '📦',
     title: 'Доставка',
     shortDesc: 'Нова Пошта, Укрпошта',
-    longDesc: 'Відправляємо по всій Україні Новою Поштою (1-3 дні) або Укрпоштою (2-5 днів). Також можливий самовивіз з нашого офісу у Львові.',
+    longDesc: 'Відправляємо по всій Україні Новою Поштою (1-3 дні) або Укрпоштою (2-5 днів). Також можливий самовивіз з нашого офісу у Стрию.',
     color: 'bg-rose-100 text-rose-700',
   },
   {
@@ -64,7 +64,9 @@ export default function Features() {
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           className="text-center max-w-2xl mx-auto mb-12"
         >
-          <h2 className="text-[#1a3c34]">Чому обирають нас?</h2>
+          <h2 className="text-[#1a3c34] text-4xl md:text-5xl font-heading font-bold">
+            Чому обирають нас?
+          </h2>
           <p className="text-gray-600 text-lg">Натисніть на картку, щоб дізнатися більше</p>
         </motion.div>
 
@@ -86,17 +88,17 @@ export default function Features() {
                 whileTap={{ scale: 0.98 }}
               >
                 <div className="flex items-start gap-4">
-                  <div className={`w-12 h-12 rounded-xl ${f.color} flex items-center justify-center text-2xl flex-shrink-0`}>
+                  <div className={`w-14 h-14 rounded-xl ${f.color} flex items-center justify-center text-3xl flex-shrink-0`}>
                     {f.icon}
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-lg font-bold text-gray-800">{f.title}</h3>
-                    <p className="text-sm text-gray-500">{f.shortDesc}</p>
+                    <h3 className="text-xl font-bold text-gray-800">{f.title}</h3>
+                    <p className="text-base text-gray-500">{f.shortDesc}</p>
                   </div>
                   <motion.div
                     animate={{ rotate: activeIndex === idx ? 180 : 0 }}
                     transition={{ duration: 0.3 }}
-                    className="text-[#c9a84c] text-xl"
+                    className="text-[#c9a84c] text-2xl"
                   >
                     ▼
                   </motion.div>
@@ -111,7 +113,7 @@ export default function Features() {
                       transition={{ duration: 0.3 }}
                       className="overflow-hidden"
                     >
-                      <p className="mt-3 text-gray-600 border-t border-gray-200 pt-3 text-sm">
+                      <p className="mt-3 text-gray-600 border-t border-gray-200 pt-3 text-base">
                         {f.longDesc}
                       </p>
                     </motion.div>

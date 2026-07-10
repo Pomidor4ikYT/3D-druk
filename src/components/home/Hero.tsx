@@ -1,6 +1,6 @@
 'use client';
 
-import { motion, useMotionValue, useTransform, useSpring } from 'framer-motion';
+import { motion, useMotionValue, useTransform, useSpring, AnimatePresence } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Button from '@/components/ui/Button';
@@ -59,7 +59,7 @@ const FloatingShapes = () => {
 };
 
 // =========================
-// 2. Дрібні крапки (тільки на клієнті)
+// 2. Дрібні крапки
 // =========================
 const TinyDots = () => {
   const [dots, setDots] = useState<
@@ -130,10 +130,84 @@ const TypewriterText = ({ text, className }: { text: string; className?: string 
 };
 
 // =========================
-// 4. Головний компонент Hero
+// 4. Дані для модалки "Супер взірці нового покоління"
+// =========================
+const newGenItems = [
+  // Протези (складні функціональні вироби)
+  {
+    src: '/images/gallery/7.jpg',
+    title: 'Біонічний протез руки',
+    category: 'Протези',
+    tags: ['AMS-друк', 'TPU', 'Точність 0.05 мм'],
+    description: 'Функціональний протез з адаптивним захватом, надрукований за індивідуальними параметрами.',
+  },
+  {
+    src: '/images/gallery/9.jpg',
+    title: 'Протез кисті',
+    category: 'Протези',
+    tags: ['PETG', 'Висока міцність'],
+    description: 'Легка конструкція з посиленими вузлами для щоденного використання.',
+  },
+  {
+    src: '/images/gallery/10.jpg',
+    title: 'Протез передпліччя',
+    category: 'Протези',
+    tags: ['ABS', 'Удароміцний'],
+    description: 'Анатомічна форма, адаптована під конкретного користувача.',
+  },
+  {
+    src: '/images/gallery/12.jpg',
+    title: 'Адаптивний протез',
+    category: 'Протези',
+    tags: ['TPU', 'Гнучкі з\'єднання'],
+    description: 'Модульна система, що дозволяє змінювати конфігурацію.',
+  },
+  {
+    src: '/images/gallery/13.jpg',
+    title: 'Комплексний протез',
+    category: 'Протези',
+    tags: ['Комбінований друк', 'PLA+TPU'],
+    description: 'Поєднання жорстких та гнучких матеріалів для максимальної функціональності.',
+  },
+  // Механізми та прототипи
+  {
+    src: '/images/gallery/4.jpg',
+    title: 'Коробка передач (прототип)',
+    category: 'Механізми',
+    tags: ['ABS', 'Шліфування'],
+    description: 'Тестовий зразок складної механічної системи з рухомими елементами.',
+  },
+  // Фігурки (мистецькі роботи)
+  {
+    src: '/images/gallery/18.jpg',
+    title: 'Фігурка Телелан',
+    category: 'Арт-фігурки',
+    tags: ['PLA', 'Багатоколірний AMS'],
+    description: 'Авторська модель з деталізацією до 0.1 мм, надрукована в 4 кольори.',
+  },
+  {
+    src: '/images/gallery/19.jpg',
+    title: 'Фігурка Чаплін',
+    category: 'Арт-фігурки',
+    tags: ['PLA', 'Постобробка'],
+    description: 'Художня мініатюра з ручною обробкою та фарбуванням.',
+  },
+  // Додаткові складні зразки
+  {
+    src: '/images/gallery/1.jpg',
+    title: 'Масажний ролер (ергономічний)',
+    category: 'Функціональний дизайн',
+    tags: ['TPU', 'Текстурована поверхня'],
+    description: 'Виріб складної форми з оптимізованою структурою для масажу.',
+  },
+];
+
+// =========================
+// 5. Головний компонент Hero
 // =========================
 export default function Hero() {
   const [calcOpen, setCalcOpen] = useState(false);
+  const [showNewGenModal, setShowNewGenModal] = useState(false);
 
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
@@ -226,6 +300,16 @@ export default function Hero() {
               >
                 Розрахувати вартість
               </Button>
+
+              {/* Кнопка "Розробка авторських моделей" – відкриває модалку */}
+              <Button
+                onClick={() => setShowNewGenModal(true)}
+                variant="primary"
+                className="relative overflow-hidden bg-gradient-to-r from-[#c9a84c] to-[#b89a3e] text-[#1a3c34] font-bold px-6 py-3 shadow-lg shadow-[#c9a84c]/30 hover:shadow-[#c9a84c]/50 transition-all"
+              >
+                <span className="relative z-10">✨ Розробка авторських моделей</span>
+                <span className="absolute inset-0 bg-white/20 scale-0 group-hover:scale-100 rounded-full transition-transform duration-500" />
+              </Button>
             </motion.div>
 
             <motion.div
@@ -242,7 +326,7 @@ export default function Hero() {
             </motion.div>
           </motion.div>
 
-          {/* Права частина – зображення принтера з 3D-ефектом */}
+          {/* Права частина – зображення принтера X1 Carbon */}
           <motion.div className="relative flex justify-center" style={{ perspective: 1000 }}>
             <motion.div
               style={{
@@ -255,8 +339,8 @@ export default function Hero() {
             >
               <div className="relative w-full h-full rounded-3xl overflow-hidden shadow-2xl shadow-[#7ec8a3]/20 border-2 border-[#7ec8a3]/30">
                 <Image
-                  src="/images/printer/main.jpg"
-                  alt="3D принтер"
+                  src="/images/printer/x1carbon.jpg"
+                  alt="Bambu Lab X1 Carbon"
                   fill
                   className="object-cover"
                   sizes="(max-width: 768px) 100vw, 50vw"
@@ -279,7 +363,7 @@ export default function Hero() {
                     </svg>
                   </div>
                   <div>
-                    <p className="font-bold text-sm text-white">Bambu Lab A1</p>
+                    <p className="font-bold text-sm text-white">Bambu Lab X1 Carbon</p>
                     <p className="text-xs text-gray-300">256×256×256 мм</p>
                   </div>
                 </div>
@@ -319,17 +403,150 @@ export default function Hero() {
         {/* Стрілка вниз */}
         <motion.div
           className="absolute bottom-8 left-1/2 transform -translate-x-1/2 text-white/40 cursor-pointer z-20"
-          animate={{ y: [0, 10, 0] }}
+          animate={{ y: [0, 16, 0] }}
           transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
           onClick={scrollToFeatures}
         >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+          <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
           </svg>
         </motion.div>
       </section>
 
+      {/* Калькулятор */}
       <CalculatorModal isOpen={calcOpen} onClose={() => setCalcOpen(false)} />
+
+      {/* ============================================================
+          МОДАЛКА "Супер взірці 3D-друку нового покоління"
+          ============================================================ */}
+      <AnimatePresence>
+        {showNewGenModal && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+            onClick={() => setShowNewGenModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0, y: 30 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.8, opacity: 0, y: 30 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="bg-white rounded-3xl max-w-5xl w-full max-h-[90vh] overflow-y-auto p-6 relative shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 text-3xl transition z-10 bg-white/80 rounded-full w-10 h-10 flex items-center justify-center"
+                onClick={() => setShowNewGenModal(false)}
+              >
+                ✕
+              </button>
+
+              <div className="text-center mb-6">
+                <span className="inline-block text-5xl mb-2">✨</span>
+                <h2 className="text-3xl md:text-4xl font-heading font-bold text-[#1a3c34]">
+                  Супер взірці 3D-друку нового покоління
+                </h2>
+                <p className="text-gray-500 mt-2 max-w-2xl mx-auto">
+                  Це не просто галерея – це наші найскладніші, найунікальніші проєкти,
+                  створені на замовлення. Тут ви побачите{' '}
+                  <span className="font-semibold text-[#c9a84c]">багатокольоровий друк (AMS)</span>,
+                  <span className="font-semibold text-[#c9a84c]"> функціональні протези</span>,
+                  <span className="font-semibold text-[#c9a84c]"> складні механізми</span> та
+                  <span className="font-semibold text-[#c9a84c]"> художні мініатюри</span>.
+                </p>
+              </div>
+
+              {/* Групування за категоріями */}
+              {['Протези', 'Механізми', 'Арт-фігурки', 'Функціональний дизайн'].map((cat) => {
+                const items = newGenItems.filter((item) => item.category === cat);
+                if (items.length === 0) return null;
+                return (
+                  <div key={cat} className="mb-6">
+                    <h3 className="text-xl font-bold text-[#1a3c34] mb-3 flex items-center gap-2">
+                      <span className="w-1 h-6 bg-[#c9a84c] rounded-full"></span>
+                      {cat}
+                    </h3>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {items.map((img, idx) => (
+                        <motion.div
+                          key={idx}
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: idx * 0.05 }}
+                          whileHover={{ scale: 1.05, zIndex: 10 }}
+                          className="relative aspect-square rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all cursor-pointer group"
+                        >
+                          <Image
+                            src={img.src}
+                            alt={img.title}
+                            fill
+                            className="object-cover transition-transform group-hover:scale-110 duration-500"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent flex flex-col justify-end p-3">
+                            <p className="text-white text-sm font-bold">{img.title}</p>
+                            <p className="text-white/80 text-xs">{img.description}</p>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {img.tags.map((tag, i) => (
+                                <span
+                                  key={i}
+                                  className="bg-[#c9a84c]/80 text-white text-[10px] px-2 py-0.5 rounded-full"
+                                >
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Технологічний блок */}
+              <div className="bg-gradient-to-r from-[#1a3c34]/5 to-[#c9a84c]/10 rounded-xl p-4 mb-6 border border-[#c9a84c]/20">
+                <h4 className="font-bold text-[#1a3c34] flex items-center gap-2">
+                  <span className="text-2xl">🚀</span> Чому це нове покоління?
+                </h4>
+                <ul className="grid grid-cols-2 gap-2 mt-2 text-sm text-gray-700">
+                  <li className="flex items-center gap-2">
+                    <span className="text-[#c9a84c]">✔</span> Багатоколірний друк (AMS) до 16 кольорів
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="text-[#c9a84c]">✔</span> Точність до 0.05 мм
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="text-[#c9a84c]">✔</span> Складні геометрії без підтримок
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="text-[#c9a84c]">✔</span> Інженерні та біосумісні матеріали
+                  </li>
+                </ul>
+              </div>
+
+              <div className="text-center space-y-3">
+                <p className="text-gray-500 text-sm">
+                  Хочете створити щось подібне або навіть складніше? Ми розробимо унікальну модель спеціально для вас.
+                </p>
+                <div className="flex flex-wrap justify-center gap-4">
+                  <Button
+                    href="/services"
+                    variant="primary"
+                    className="bg-[#c9a84c] text-[#1a3c34] hover:bg-[#b89a3e]"
+                  >
+                    ✨ Замовити індивідуальну розробку
+                  </Button>
+                  <Button href="/gallery" variant="secondary">
+                    Переглянути всі роботи
+                  </Button>
+                </div>
+                <p className="text-xs text-gray-400">
+                  Кожен проєкт – унікальний, створений з урахуванням ваших побажань і технічних вимог.
+                </p>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </>
   );
 }

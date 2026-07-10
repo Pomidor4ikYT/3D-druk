@@ -188,3 +188,9 @@
 .animate-subtle-rotate {
   animation: subtle-rotate 20s linear infinite;
 }
+/* Додаткові стилі для стрілок (якщо десь ще є) */
+.arrow-down {
+  width: 48px;
+  height: 48px;
+  stroke-width: 3;
+}
