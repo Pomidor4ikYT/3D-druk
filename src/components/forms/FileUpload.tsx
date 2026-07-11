@@ -12,26 +12,25 @@ export default function FileUpload({ onFileSelect }: FileUploadProps) {
   const [preview, setPreview] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
 
-  const allowedExtensions = ['stl', 'obj', '3mf', 'png', 'jpg', 'jpeg', 'webp', 'gif'];
+  const allowedExtensions = ['stl', 'obj', '3mf', 'png', 'jpg', 'jpeg', 'webp', 'gif', 'zip', 'rar', '7z', 'pdf'];
   const imageExtensions = ['png', 'jpg', 'jpeg', 'webp', 'gif'];
 
   const handleFile = (file: File) => {
     const ext = file.name.split('.').pop()?.toLowerCase();
     if (!ext || !allowedExtensions.includes(ext)) {
-      alert('Будь ласка, завантажте файл у форматі: STL, OBJ, 3MF, PNG, JPG, JPEG, WEBP, GIF');
+      alert('Будь ласка, завантажте файл у форматі: STL, OBJ, 3MF, PNG, JPG, JPEG, WEBP, GIF, ZIP, RAR, 7Z, PDF');
       return;
     }
 
-    // Якщо файл більше 50MB – попередження
-    if (file.size > 50 * 1024 * 1024) {
-      alert('Файл занадто великий. Максимальний розмір – 50MB');
+    // ЗБІЛЬШЕНО ДО 100 МБ
+    if (file.size > 100 * 1024 * 1024) {
+      alert('Файл занадто великий. Максимальний розмір – 100MB');
       return;
     }
 
     onFileSelect(file);
     setFileName(file.name);
 
-    // Попередній перегляд для зображень
     if (imageExtensions.includes(ext)) {
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -71,7 +70,7 @@ export default function FileUpload({ onFileSelect }: FileUploadProps) {
         <input
           ref={inputRef}
           type="file"
-          accept=".stl,.obj,.3mf,.png,.jpg,.jpeg,.webp,.gif"
+          accept=".stl,.obj,.3mf,.png,.jpg,.jpeg,.webp,.gif,.zip,.rar,.7z,.pdf"
           onChange={(e) => e.target.files && handleFile(e.target.files[0])}
           className="hidden"
         />
@@ -80,7 +79,7 @@ export default function FileUpload({ onFileSelect }: FileUploadProps) {
           <div className="flex flex-col items-center gap-2 py-4">
             <span className="text-5xl">📁</span>
             <p className="text-gray-600 font-medium">Перетягніть файл або клікніть для вибору</p>
-            <p className="text-gray-400 text-sm">STL, OBJ, 3MF, PNG, JPG, WEBP, GIF</p>
+            <p className="text-gray-400 text-sm">STL, OBJ, 3MF, PNG, JPG, WEBP, GIF, ZIP, RAR, 7Z, PDF</p>
           </div>
         ) : (
           <div className="flex items-center gap-4">

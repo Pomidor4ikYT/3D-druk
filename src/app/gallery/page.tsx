@@ -75,13 +75,16 @@ function PurchaseModal({
         </div>
 
         <div className="relative w-full h-48 rounded-xl overflow-hidden bg-gray-100 mb-4">
-          <Image
-            src={item.src}
-            alt={item.title}
-            fill
-            className="object-contain"
-            sizes="100vw"
-          />
+          <div className="relative w-full h-full">
+            <Image
+              src={item.src}
+              alt={item.title}
+              fill
+              className="object-contain"
+              sizes="100vw"
+              loading="eager" // для модалки завантажуємо одразу
+            />
+          </div>
         </div>
 
         <p className="text-sm text-gray-500 mb-2">{item.category}</p>
@@ -158,7 +161,6 @@ export default function GalleryPage() {
       ? Math.round(item.price * (1 - item.discount / 100))
       : item.price;
 
-    // Тепер передаємо quantity в addItem
     addItem({
       id: item.src,
       title: item.title,
@@ -167,7 +169,7 @@ export default function GalleryPage() {
       category: item.category,
       originalPrice: item.originalPrice,
       discount: item.discount,
-      quantity: quantity, // <-- тепер це дозволено
+      quantity: quantity,
     });
     setToastMessage(`✅ ${item.title} додано до кошика! (${quantity} шт.)`);
     setShowToast(true);
@@ -231,13 +233,15 @@ export default function GalleryPage() {
             className="relative h-72 rounded-2xl overflow-hidden shadow-lg cursor-pointer group border border-gray-200"
           >
             {/* Клік на картку – відкриває фото на повний екран */}
-            <div onClick={() => setSelectedPhoto(images.indexOf(img))} className="w-full h-full">
+            <div onClick={() => setSelectedPhoto(images.indexOf(img))} className="w-full h-full relative">
               <Image
                 src={img.src}
                 alt={img.title}
                 fill
                 className="object-cover group-hover:scale-105 transition duration-500"
                 sizes="(max-width: 768px) 100vw, 33vw"
+                // для перших 4 зображень (LCP) ставимо eager, для решти lazy (за замовчуванням)
+                loading={idx < 4 ? "eager" : "lazy"}
               />
             </div>
             
@@ -310,14 +314,17 @@ export default function GalleryPage() {
               className="relative max-w-6xl w-full h-[90vh] bg-transparent flex items-center justify-center"
               onClick={(e) => e.stopPropagation()}
             >
-              <Image
-                src={images[selectedPhoto].src}
-                alt={images[selectedPhoto].title}
-                fill
-                className="object-contain"
-                sizes="100vw"
-                priority
-              />
+              <div className="relative w-full h-full">
+                <Image
+                  src={images[selectedPhoto].src}
+                  alt={images[selectedPhoto].title}
+                  fill
+                  className="object-contain"
+                  sizes="100vw"
+                  priority
+                  loading="eager"
+                />
+              </div>
               <button
                 className="absolute top-4 right-4 z-20 bg-black/50 backdrop-blur-sm text-white p-3 rounded-full hover:bg-black/70 transition"
                 onClick={() => setSelectedPhoto(null)}

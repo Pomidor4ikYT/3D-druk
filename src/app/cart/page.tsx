@@ -203,6 +203,11 @@ export default function CartPage() {
   const total = items.reduce((sum, i) => sum + (i.price || 0) * (i.quantity || 1), 0);
   const totalItems = items.reduce((sum, i) => sum + i.quantity, 0);
 
+  // Перевірка наявності консультацій або волонтерських послуг
+  const hasConsultationOrVolunteer = items.some(item => 
+    item.category === 'Консультації' || item.category === 'Соціальне'
+  );
+
   useEffect(() => {
     setIsClient(true);
   }, []);
@@ -286,23 +291,18 @@ export default function CartPage() {
 
   // Покращена функція визначення зображення
   const getItemImage = (item: any) => {
-    // 1. Якщо є icon і це URL – показуємо як зображення
     if (item.icon && typeof item.icon === 'string' && item.icon.startsWith('http')) {
       return { type: 'url', value: item.icon };
     }
-    // 2. Якщо є image і це URL – показуємо як зображення
     if (item.image && typeof item.image === 'string' && item.image.startsWith('http')) {
       return { type: 'url', value: item.image };
     }
-    // 3. Якщо є icon (емодзі) – показуємо як емодзі
     if (item.icon && typeof item.icon === 'string' && !item.icon.startsWith('http')) {
       return { type: 'emoji', value: item.icon };
     }
-    // 4. Якщо є image (локальний шлях) – показуємо як локальне зображення
     if (item.image && typeof item.image === 'string' && !item.image.startsWith('http')) {
       return { type: 'local', value: item.image };
     }
-    // 5. Fallback
     return { type: 'emoji', value: '📦' };
   };
 
@@ -345,7 +345,6 @@ export default function CartPage() {
                   exit={{ opacity: 0, x: -20 }}
                   className="flex gap-4 border-b border-gray-100 pb-4 last:border-0 last:pb-0"
                 >
-                  {/* Фото товару */}
                   <div className="w-24 h-24 relative rounded-xl overflow-hidden flex-shrink-0 bg-gray-100 shadow-sm flex items-center justify-center text-4xl">
                     {imageInfo.type === 'emoji' ? (
                       <span className="text-5xl">{imageInfo.value}</span>
@@ -402,7 +401,9 @@ export default function CartPage() {
                       </div>
                     )}
                     <div className="flex items-center gap-3 mt-1">
-                      <span className="text-lg font-bold text-[#1a3c34]">{item.price} ₴</span>
+                      <span className="text-lg font-bold text-[#1a3c34]">
+                        {item.price === 0 ? 'Безкоштовно' : `${item.price} ₴`}
+                      </span>
                       {item.originalPrice && item.originalPrice > item.price && (
                         <span className="text-sm text-red-500 line-through">{item.originalPrice} ₴</span>
                       )}
@@ -450,6 +451,14 @@ export default function CartPage() {
                 </motion.div>
               );
             })}
+
+            {/* Повідомлення про доставку для консультацій та волонтерських послуг */}
+            {hasConsultationOrVolunteer && (
+              <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-800">
+                <p className="font-medium">📌 Для замовлень консультацій та волонтерської допомоги</p>
+                <p>Рекомендуємо обирати самовивіз. Ми зв'яжемося з вами для узгодження деталей.</p>
+              </div>
+            )}
 
             <div className="pt-4 border-t border-gray-200 flex justify-between items-center">
               <div>

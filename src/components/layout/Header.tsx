@@ -38,7 +38,7 @@ export default function Header() {
           ))}
         </nav>
 
-        <div className="hidden md:flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <Link href="/cart" className="relative text-gray-700 hover:text-[#c9a84c] transition">
             <svg
               className="w-6 h-6"
@@ -59,18 +59,19 @@ export default function Header() {
               </span>
             )}
           </Link>
-          <Button href="/order" variant="primary">
+
+          <Button href="/order" variant="primary" className="hidden md:inline-flex items-center justify-center">
             Замовити
           </Button>
-        </div>
 
-        <button
-          className="md:hidden text-gray-700 text-3xl focus:outline-none hover:text-[#c9a84c] transition"
-          onClick={() => setMobileMenuOpen(true)}
-          aria-label="Open menu"
-        >
-          ☰
-        </button>
+          <button
+            className="md:hidden text-gray-700 text-3xl focus:outline-none hover:text-[#c9a84c] transition"
+            onClick={() => setMobileMenuOpen(true)}
+            aria-label="Open menu"
+          >
+            ☰
+          </button>
+        </div>
       </div>
       <MobileMenu isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} links={navLinks} />
     </header>

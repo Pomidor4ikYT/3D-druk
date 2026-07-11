@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, useInView, AnimatePresence } from 'framer-motion';
 import { useCartStore } from '@/store/cartStore';
+import FileUpload from '@/components/forms/FileUpload';
 
 // ==================== ДАНІ ====================
 const services = [
@@ -16,6 +17,8 @@ const services = [
     priceValue: 6,
     unit: '₴/г',
     hasCalculator: true,
+    hasFileUpload: true,
+    additionalInfoLabel: 'Вкажіть бажані розміри (L×W×H см), колір, кількість, особливості друку (наприклад, потрібна підтримка)',
     calculatorFields: [
       { type: 'select', label: 'Матеріал', key: 'material', options: [
         { label: 'PLA', value: 6 },
@@ -25,10 +28,10 @@ const services = [
         { label: 'TPU', value: 10 },
         { label: 'PA (нейлон)', value: 15 },
       ], default: 6 },
-      { type: 'range', label: 'Вага моделі (г)', key: 'weight', min: 1, max: 5000, default: 50, step: 1 },
+      { type: 'range', label: 'Вага моделі (г) – орієнтовно', key: 'weight', min: 1, max: 5000, default: 50, step: 1 },
       { type: 'range', label: 'Кількість', key: 'quantity', min: 1, max: 500, default: 1, step: 1 },
     ],
-    longDesc: 'Друк будь-яких 3D-моделей з точністю до 0.1 мм. Матеріали: PLA, PETG, ABS, ASA, TPU, PA (нейлон). Розмір до 25,6×25,6×25,6 см. Терміни від 1 дня.',
+    longDesc: 'Друк будь-яких 3D-моделей з точністю до 0.1 мм. Матеріали: PLA, PETG, ABS, ASA, TPU, PA (нейлон). Розмір до 25,6×25,6×25,6 см. Терміни від 1 дня. Завантажте файл моделі (STL, OBJ, 3MF) – ми розрахуємо точну вартість після аналізу моделі.',
   },
   {
     id: 2,
@@ -41,16 +44,18 @@ const services = [
     priceValue: 1000,
     unit: '₴',
     hasCalculator: true,
+    hasFileUpload: true,
+    additionalInfoLabel: 'Опишіть детально, що потрібно змоделювати. Завантажте ескізи, фото, креслення або референси.',
     calculatorFields: [
       { type: 'select', label: 'Складність', key: 'complexity', options: [
-        { label: 'Проста', value: 1000 },
-        { label: 'Середня', value: 2000 },
-        { label: 'Складна', value: 4000 },
-        { label: 'Дуже складна', value: 7000 },
+        { label: 'Проста (1–3 год роботи)', value: 1000 },
+        { label: 'Середня (3–6 год)', value: 2000 },
+        { label: 'Складна (6–12 год)', value: 4000 },
+        { label: 'Дуже складна (12+ год)', value: 7000 },
       ], default: 1000 },
       { type: 'range', label: 'Кількість моделей', key: 'quantity', min: 1, max: 10, default: 1, step: 1 },
     ],
-    longDesc: 'Розробляємо 3D-моделі будь-якої складності за вашими ескізами, кресленнями або ідеями. Формати: STL, OBJ, 3MF.',
+    longDesc: 'Розробляємо 3D-моделі будь-якої складності за вашими ескізами, кресленнями або ідеями. Формати: STL, OBJ, 3MF. Завантажте референси – ми запропонуємо оптимальне рішення.',
   },
   {
     id: 3,
@@ -63,15 +68,17 @@ const services = [
     priceValue: 1500,
     unit: '₴',
     hasCalculator: true,
+    hasFileUpload: true,
+    additionalInfoLabel: 'Опишіть ваш бренд, цільову аудиторію, побажання до стилю. Завантажте приклади або посилання на референси.',
     calculatorFields: [
       { type: 'select', label: 'Тип роботи', key: 'type', options: [
         { label: 'Логотип', value: 1500 },
-        { label: 'Айдентика', value: 4000 },
+        { label: 'Айдентика (логотип + фірмстиль)', value: 4000 },
         { label: 'Упаковка', value: 2500 },
       ], default: 1500 },
       { type: 'range', label: 'Кількість варіантів', key: 'variants', min: 1, max: 5, default: 2, step: 1 },
     ],
-    longDesc: 'Створюємо унікальний дизайн для вашого бренду: логотипи, айдентику, упаковку. Допомагаємо виділитися на ринку.',
+    longDesc: 'Створюємо унікальний дизайн для вашого бренду: логотипи, айдентику, упаковку. Допомагаємо виділитися на ринку. Завантажте референси для кращого розуміння вашого стилю.',
   },
   {
     id: 4,
@@ -84,15 +91,18 @@ const services = [
     priceValue: 200,
     unit: '₴',
     hasCalculator: true,
+    hasFileUpload: true,
+    additionalInfoLabel: 'Опишіть бажану обробку: які поверхні, колір, фініш (глянець/мат). Завантажте фото або опис виробу.',
     calculatorFields: [
       { type: 'select', label: 'Тип обробки', key: 'type', options: [
         { label: 'Шліфування', value: 200 },
         { label: 'Ґрунтовка', value: 300 },
         { label: 'Фарбування', value: 500 },
+        { label: 'Комплексна (шліфування+ґрунтовка+фарбування)', value: 800 },
       ], default: 200 },
       { type: 'range', label: 'Розмір виробу (см)', key: 'size', min: 1, max: 50, default: 10, step: 1 },
     ],
-    longDesc: 'Повний цикл постобробки: шліфування, ґрунтовка, фарбування, склеювання. Ваш виріб виглядатиме як професійний продукт.',
+    longDesc: 'Повний цикл постобробки: шліфування, ґрунтовка, фарбування, склеювання. Ваш виріб виглядатиме як професійний продукт. Завантажте фото виробу для точної оцінки.',
   },
   {
     id: 5,
@@ -105,7 +115,9 @@ const services = [
     priceValue: 0,
     unit: '',
     hasCalculator: false,
-    longDesc: 'Проконсультуємо з будь-яких питань 3D-друку. Допоможемо обрати матеріал, оптимізувати модель та підготувати її до друку.',
+    hasFileUpload: true,
+    additionalInfoLabel: 'Опишіть ваше завдання або завантажте модель – ми підкажемо оптимальне рішення.',
+    longDesc: 'Безкоштовна консультація експерта з 3D-друку. Ми допоможемо обрати матеріал, оптимізувати модель для друку, розрахувати вартість та терміни. Завантажте модель або опишіть завдання – і ми дамо розгорнуту відповідь протягом 12 годин.',
   },
   {
     id: 6,
@@ -118,6 +130,8 @@ const services = [
     priceValue: 300,
     unit: '₴',
     hasCalculator: true,
+    hasFileUpload: true,
+    additionalInfoLabel: 'Вкажіть цільове призначення прототипу, бажані матеріали та розміри. Завантажте модель (STL, OBJ, 3MF).',
     calculatorFields: [
       { type: 'select', label: 'Матеріал', key: 'material', options: [
         { label: 'PLA', value: 6 },
@@ -127,7 +141,7 @@ const services = [
       ], default: 6 },
       { type: 'range', label: 'Вага (г)', key: 'weight', min: 1, max: 5000, default: 50, step: 1 },
     ],
-    longDesc: 'Швидке прототипування для тестування форми, функціональності та ергономіки. Терміни від 1 дня.',
+    longDesc: 'Швидке прототипування для тестування форми, функціональності та ергономіки. Терміни від 1 дня. Завантажте файл моделі – ми виготовимо прототип для ваших тестів.',
   },
   {
     id: 7,
@@ -140,7 +154,9 @@ const services = [
     priceValue: 0,
     unit: '',
     hasCalculator: false,
-    longDesc: 'На волонтерських засадах друкуємо адаптери, кріплення, тактичні аксесуари, масажери та реабілітаційні прилади для потреб ЗСУ.',
+    hasFileUpload: true,
+    additionalInfoLabel: 'Опишіть, що потрібно надрукувати, для яких потреб. Завантажте модель або технічний опис.',
+    longDesc: 'На волонтерських засадах друкуємо адаптери, кріплення, тактичні аксесуари, масажери та реабілітаційні прилади для потреб ЗСУ. Ми готові допомогти з виготовленням необхідних виробів безкоштовно або за собівартістю матеріалів. Завантажте модель або опишіть завдання – ми зв\'яжемося з вами для уточнення деталей.',
   },
   {
     id: 8,
@@ -153,15 +169,17 @@ const services = [
     priceValue: 800,
     unit: '₴',
     hasCalculator: true,
+    hasFileUpload: true,
+    additionalInfoLabel: 'Опишіть об\'єкт, який потрібно відсканувати: розміри, матеріал, деталізація. Можна завантажити фото об\'єкта.',
     calculatorFields: [
       { type: 'select', label: 'Точність', key: 'accuracy', options: [
-        { label: 'Стандартна', value: 800 },
-        { label: 'Висока', value: 1200 },
-        { label: 'Максимальна', value: 2000 },
+        { label: 'Стандартна (для візуалізації)', value: 800 },
+        { label: 'Висока (для реверс-інжинірингу)', value: 1200 },
+        { label: 'Максимальна (для прецизійних робіт)', value: 2000 },
       ], default: 800 },
       { type: 'range', label: 'Розмір об\'єкта (см)', key: 'size', min: 1, max: 100, default: 20, step: 1 },
     ],
-    longDesc: 'Створюємо точну 3D-копію вашого об\'єкта. Ідеально для реверс-інжинірингу, архівування або створення дублікатів.',
+    longDesc: 'Створюємо точну 3D-копію вашого об\'єкта. Ідеально для реверс-інжинірингу, архівування або створення дублікатів. Завантажте фото об\'єкта для попередньої оцінки.',
   },
   {
     id: 9,
@@ -174,6 +192,8 @@ const services = [
     priceValue: 150,
     unit: '₴',
     hasCalculator: true,
+    hasFileUpload: true,
+    additionalInfoLabel: 'Вкажіть тип обробки, розміри та матеріал деталі. Завантажте модель або креслення.',
     calculatorFields: [
       { type: 'select', label: 'Тип роботи', key: 'type', options: [
         { label: 'Свердління', value: 150 },
@@ -182,7 +202,7 @@ const services = [
       ], default: 150 },
       { type: 'range', label: 'Кількість операцій', key: 'count', min: 1, max: 20, default: 2, step: 1 },
     ],
-    longDesc: 'Механічна обробка надрукованих деталей: свердління, нарізання різьби, шліфування, полірування.',
+    longDesc: 'Механічна обробка надрукованих деталей: свердління, нарізання різьби, шліфування, полірування. Завантажте модель або креслення для точної роботи.',
   },
   {
     id: 10,
@@ -195,6 +215,8 @@ const services = [
     priceValue: 100,
     unit: '₴',
     hasCalculator: true,
+    hasFileUpload: true,
+    additionalInfoLabel: 'Вкажіть текст, зображення або логотип для гравіювання. Завантажте файл з макетом (SVG, PNG, JPG).',
     calculatorFields: [
       { type: 'select', label: 'Матеріал', key: 'material', options: [
         { label: 'Пластик', value: 100 },
@@ -203,7 +225,7 @@ const services = [
       ], default: 100 },
       { type: 'range', label: 'Площа (см²)', key: 'area', min: 1, max: 100, default: 10, step: 1 },
     ],
-    longDesc: 'Наносимо будь-які зображення лазером. Ідеально для персоналізації виробів, сувенірів, брендування.',
+    longDesc: 'Наносимо будь-які зображення лазером. Ідеально для персоналізації виробів, сувенірів, брендування. Завантажте макет – ми підготуємо файл для гравіювання.',
   },
   {
     id: 11,
@@ -216,15 +238,18 @@ const services = [
     priceValue: 300,
     unit: '₴',
     hasCalculator: true,
+    hasFileUpload: true,
+    additionalInfoLabel: 'Вкажіть бажаний колір, тип покриття (глянець/мат), вимоги до захисних властивостей. Завантажте фото виробу.',
     calculatorFields: [
       { type: 'select', label: 'Тип покриття', key: 'type', options: [
         { label: 'Праймер', value: 300 },
-        { label: 'Фарбування', value: 500 },
+        { label: 'Фарбування (акрил)', value: 500 },
         { label: 'Лакування', value: 400 },
+        { label: 'Комплекс (праймер+фарба+лак)', value: 900 },
       ], default: 300 },
       { type: 'range', label: 'Розмір виробу (см)', key: 'size', min: 1, max: 50, default: 10, step: 1 },
     ],
-    longDesc: 'Професійне фарбування та нанесення захисних покриттів. Використовуємо якісні фарби та лаки для довговічності та естетики.',
+    longDesc: 'Професійне фарбування та нанесення захисних покриттів. Використовуємо якісні фарби та лаки для довговічності та естетики. Завантажте фото виробу для узгодження кольору.',
   },
   {
     id: 12,
@@ -237,15 +262,17 @@ const services = [
     priceValue: 600,
     unit: '₴',
     hasCalculator: true,
+    hasFileUpload: true,
+    additionalInfoLabel: 'Опишіть призначення макету, бажані матеріали, розміри. Завантажте модель або ескіз.',
     calculatorFields: [
       { type: 'select', label: 'Тип макету', key: 'type', options: [
-        { label: 'Навчальний', value: 600 },
-        { label: 'Демонстраційний', value: 1000 },
-        { label: 'Інтерактивний', value: 1500 },
+        { label: 'Навчальний (для демонстрації)', value: 600 },
+        { label: 'Демонстраційний (для виставок)', value: 1000 },
+        { label: 'Інтерактивний (з рухомими частинами)', value: 1500 },
       ], default: 600 },
       { type: 'range', label: 'Розмір (см)', key: 'size', min: 5, max: 50, default: 15, step: 1 },
     ],
-    longDesc: 'Створюємо навчальні макети для шкіл, вишів, медичних установ. Допомагаємо візуалізувати складні концепції.',
+    longDesc: 'Створюємо навчальні макети для шкіл, вишів, медичних установ. Допомагаємо візуалізувати складні концепції. Завантажте модель або технічне завдання.',
   },
 ];
 
@@ -259,6 +286,8 @@ export default function ServicesPage() {
   const [calculatedPrice, setCalculatedPrice] = useState<number | null>(null);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [additionalInfo, setAdditionalInfo] = useState('');
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: '-50px' });
   const addItem = useCartStore((state) => state.addItem);
@@ -299,82 +328,104 @@ export default function ServicesPage() {
     });
     if (basePrice === 0) basePrice = service.priceValue;
     let total = basePrice * weight * quantity;
-    // Застосовуємо знижки для друку (id === 1)
     if (service.id === 1) {
       if (quantity >= 500) {
-        total = Math.round(total * 0.85); // індивідуальний договір – умовно 15%
+        total = Math.round(total * 0.85);
       } else if (quantity >= 100) {
-        total = Math.round(total * 0.85); // 15%
+        total = Math.round(total * 0.85);
       } else if (quantity >= 50) {
-        total = Math.round(total * 0.9); // 10%
+        total = Math.round(total * 0.9);
       } else if (quantity >= 10) {
-        total = Math.round(total * 0.95); // 5%
+        total = Math.round(total * 0.95);
       }
     }
     setCalculatedPrice(total);
   };
 
   const addToCartWithOptions = (service: typeof services[0]) => {
-    if (service.hasCalculator && service.calculatorFields) {
-      if (calculatedPrice === null) {
-        calculatePrice(service);
-        return;
-      }
+    // Для безкалькуляторних послуг (консультація, волонтерська)
+    if (!service.hasCalculator || !service.calculatorFields) {
       const options: Record<string, any> = {};
-      const values: Record<string, any> = {};
-      service.calculatorFields.forEach(field => {
-        const val = calculatorValues[field.key] ?? field.default;
-        values[field.key] = val;
-        if (field.type === 'select' && field.options) {
-          const option = field.options.find(o => o.value === val);
-          options[field.label] = option ? option.label : val;
-        } else {
-          options[field.label] = val;
-        }
-      });
-
-      let basePrice = service.priceValue;
-      service.calculatorFields.forEach(field => {
-        if (field.type === 'select') {
-          const selectedValue = values[field.key];
-          if (selectedValue !== undefined && selectedValue !== null) {
-            basePrice = selectedValue;
-          }
-        }
-      });
-
+      if (additionalInfo.trim()) {
+        options['Додаткова інформація'] = additionalInfo.trim();
+      }
+      if (uploadedFile) {
+        options['Файл'] = uploadedFile.name;
+      }
       addItem({
         id: `service-${service.id}-${Date.now()}`,
         title: service.title,
-        price: calculatedPrice,
+        price: 0,
         image: '',
         category: service.category,
         icon: service.emoji,
         options,
-        originalPrice: Math.round(calculatedPrice * 1.2),
-        calculatorData: {
-          fields: service.calculatorFields as any, // виправлення TypeScript
-          values: values,
-          basePrice: basePrice,
-        },
+        originalPrice: undefined,
       });
       showToastMessage(`✅ ${service.title} додано до кошика!`);
-      setCalculatedPrice(null);
-      setCalculatorValues({});
+      setAdditionalInfo('');
+      setUploadedFile(null);
       setSelectedService(null);
-    } else if (service.priceValue > 0) {
-      addItem({
-        id: `service-${service.id}-${Date.now()}`,
-        title: service.title,
-        price: service.priceValue,
-        image: '',
-        category: service.category,
-        icon: service.emoji,
-        originalPrice: service.priceValue ? Math.round(service.priceValue * 1.2) : undefined,
-      });
-      showToastMessage(`✅ ${service.title} додано до кошика!`);
-      setSelectedService(null);
+      return;
     }
+
+    // Для послуг з калькулятором
+    if (calculatedPrice === null) {
+      calculatePrice(service);
+      return;
+    }
+
+    const options: Record<string, any> = {};
+    const values: Record<string, any> = {};
+    service.calculatorFields.forEach(field => {
+      const val = calculatorValues[field.key] ?? field.default;
+      values[field.key] = val;
+      if (field.type === 'select' && field.options) {
+        const option = field.options.find(o => o.value === val);
+        options[field.label] = option ? option.label : val;
+      } else {
+        options[field.label] = val;
+      }
+    });
+
+    if (additionalInfo.trim()) {
+      options['Додаткова інформація'] = additionalInfo.trim();
+    }
+    if (uploadedFile) {
+      options['Файл'] = uploadedFile.name;
+    }
+
+    let basePrice = service.priceValue;
+    service.calculatorFields.forEach(field => {
+      if (field.type === 'select') {
+        const selectedValue = values[field.key];
+        if (selectedValue !== undefined && selectedValue !== null) {
+          basePrice = selectedValue;
+        }
+      }
+    });
+
+    addItem({
+      id: `service-${service.id}-${Date.now()}`,
+      title: service.title,
+      price: calculatedPrice,
+      image: '',
+      category: service.category,
+      icon: service.emoji,
+      options,
+      originalPrice: Math.round(calculatedPrice * 1.2),
+      calculatorData: {
+        fields: service.calculatorFields as any,
+        values: values,
+        basePrice: basePrice,
+      },
+    });
+    showToastMessage(`✅ ${service.title} додано до кошика!`);
+    setAdditionalInfo('');
+    setUploadedFile(null);
+    setCalculatedPrice(null);
+    setCalculatorValues({});
+    setSelectedService(null);
   };
 
   const showToastMessage = (msg: string) => {
@@ -393,11 +444,12 @@ export default function ServicesPage() {
     }
     setCalculatorValues(initialValues);
     setCalculatedPrice(null);
+    setAdditionalInfo('');
+    setUploadedFile(null);
   };
 
   return (
     <div ref={ref} className="pt-32 pb-20 container-custom max-w-6xl mx-auto">
-      {/* Toast */}
       {showToast && (
         <div className="fixed top-24 right-4 z-50 bg-[#1a3c34] text-white px-6 py-4 rounded-xl shadow-2xl border border-[#c9a84c]/30 animate-slide-left max-w-sm">
           <div className="flex items-center gap-3">
@@ -408,7 +460,6 @@ export default function ServicesPage() {
         </div>
       )}
 
-      {/* Заголовок */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={isInView ? { opacity: 1, y: 0 } : {}}
@@ -420,7 +471,6 @@ export default function ServicesPage() {
         <div className="mt-4 inline-block bg-gray-100 px-6 py-2 rounded-full text-sm text-gray-700 border border-gray-200">📐 Макс. розмір моделі: 25,6 × 25,6 × 25,6 см</div>
       </motion.div>
 
-      {/* Фільтри */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={isInView ? { opacity: 1, y: 0 } : {}}
@@ -444,7 +494,6 @@ export default function ServicesPage() {
         ))}
       </motion.div>
 
-      {/* КАРТКИ */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
         {filtered.map((service, idx) => (
           <motion.div
@@ -478,6 +527,11 @@ export default function ServicesPage() {
                         🧮
                       </span>
                     )}
+                    {service.hasFileUpload !== false && (
+                      <span className="text-[10px] text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-100">
+                        📎
+                      </span>
+                    )}
                   </div>
                   <h3 className="text-base font-bold text-[#1a3c34] mt-1.5 leading-snug group-hover:text-[#c9a84c] transition-colors">
                     {service.title}
@@ -486,7 +540,7 @@ export default function ServicesPage() {
                 </div>
               </div>
 
-              <div className="mt-5 pt-4 border-t border-gray-100">
+              <div className="mt-auto pt-4 border-t border-gray-100">
                 <div className="mb-3">
                   <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider block">Ціна</span>
                   <span className="text-xl font-bold text-[#1a3c34] tracking-tight">
@@ -500,20 +554,13 @@ export default function ServicesPage() {
                   >
                     Детальніше
                   </button>
-                  {service.priceValue > 0 && (
-                    <button
-                      onClick={() => {
-                        if (service.hasCalculator) {
-                          openServiceModal(service);
-                        } else {
-                          addToCartWithOptions(service);
-                        }
-                      }}
-                      className="flex-1 px-4 py-2 text-xs font-semibold rounded-lg bg-[#1a3c34] text-white hover:bg-[#2d5a4b] transition-all duration-200 shadow-sm hover:shadow-md flex items-center justify-center gap-1"
-                    >
-                      <span>🛒</span> Купити
-                    </button>
-                  )}
+                  {/* Кнопка завжди відкриває модалку */}
+                  <button
+                    onClick={() => openServiceModal(service)}
+                    className="flex-1 px-4 py-2 text-xs font-semibold rounded-lg bg-[#1a3c34] text-white hover:bg-[#2d5a4b] transition-all duration-200 shadow-sm hover:shadow-md flex items-center justify-center gap-1"
+                  >
+                    <span>🛒</span> {service.priceValue > 0 ? 'Купити' : 'Замовити'}
+                  </button>
                 </div>
               </div>
             </div>
@@ -540,7 +587,6 @@ export default function ServicesPage() {
         </button>
       </motion.div>
 
-      {/* МОДАЛЬНЕ ВІКНО */}
       <AnimatePresence>
         {selectedService && (
           <div
@@ -549,6 +595,8 @@ export default function ServicesPage() {
               setSelectedService(null);
               setCalculatorValues({});
               setCalculatedPrice(null);
+              setAdditionalInfo('');
+              setUploadedFile(null);
             }}
           >
             <motion.div
@@ -579,6 +627,8 @@ export default function ServicesPage() {
                     setSelectedService(null);
                     setCalculatorValues({});
                     setCalculatedPrice(null);
+                    setAdditionalInfo('');
+                    setUploadedFile(null);
                   }}
                   className="text-gray-400 hover:text-gray-700 text-2xl transition w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100"
                 >
@@ -589,10 +639,8 @@ export default function ServicesPage() {
               <div className="p-6">
                 <p className="text-gray-600 text-base mb-4">{selectedService.longDesc}</p>
 
-                {/* ====== НОВИЙ СУЧАСНИЙ БЛОК ІНФОРМАЦІЇ ДЛЯ ДРУКУ ====== */}
                 {selectedService.id === 1 && (
                   <div className="mb-4 space-y-3">
-                    {/* Картка знижок */}
                     <div className="bg-gradient-to-r from-[#1a3c34] to-[#2d5a4b] rounded-xl p-5 text-white shadow-lg">
                       <h5 className="font-bold text-[#c9a84c] flex items-center gap-2 mb-3">
                         <span className="text-xl">🎯</span>
@@ -621,8 +669,6 @@ export default function ServicesPage() {
                         </div>
                       </div>
                     </div>
-
-                    {/* Картка мінімальної вартості моделювання */}
                     <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-4 shadow-sm">
                       <span className="text-3xl">⚡</span>
                       <div>
@@ -647,13 +693,14 @@ export default function ServicesPage() {
                                 onChange={(e) => handleCalculatorChange(field.key, Number(e.target.value))}
                                 className="w-full p-2.5 bg-white rounded-xl border border-gray-200 focus:border-[#c9a84c] focus:ring-2 focus:ring-[#c9a84c]/30 outline-none transition text-sm"
                               >
-                                {field.options.map((opt, idx) => (
+                                {field.options.map((opt) => (
                                   <option key={opt.label} value={opt.value}>{opt.label} ({opt.value} ₴/г)</option>
                                 ))}
                               </select>
                             </div>
                           );
                         } else if (field.type === 'range') {
+                          const currentVal = calculatorValues[field.key] ?? field.default;
                           return (
                             <div key={field.key}>
                               <label className="block text-sm font-medium text-gray-700 mb-1.5">{field.label}</label>
@@ -663,13 +710,30 @@ export default function ServicesPage() {
                                   min={field.min}
                                   max={field.max}
                                   step={field.step || 1}
-                                  value={calculatorValues[field.key] ?? field.default}
+                                  value={currentVal}
                                   onChange={(e) => handleCalculatorChange(field.key, Number(e.target.value))}
                                   className="flex-1 h-2 bg-gray-200 rounded-full appearance-none cursor-pointer accent-[#c9a84c]"
                                 />
-                                <span className="text-sm font-bold text-[#1a3c34] min-w-[50px] text-center">
-                                  {calculatorValues[field.key] ?? field.default}
-                                </span>
+                                <input
+                                  type="number"
+                                  min={field.min}
+                                  max={field.max}
+                                  step={field.step || 1}
+                                  value={currentVal}
+                                  onChange={(e) => {
+                                    const val = Number(e.target.value);
+                                    if (
+                                      !isNaN(val) &&
+                                      field.min !== undefined &&
+                                      field.max !== undefined &&
+                                      val >= field.min &&
+                                      val <= field.max
+                                    ) {
+                                      handleCalculatorChange(field.key, val);
+                                    }
+                                  }}
+                                  className="w-20 p-2 text-center bg-white rounded-xl border border-gray-200 focus:border-[#c9a84c] focus:ring-2 focus:ring-[#c9a84c]/30 outline-none transition text-sm"
+                                />
                               </div>
                               <p className="text-xs text-gray-400 mt-1">від {field.min} до {field.max}</p>
                             </div>
@@ -711,6 +775,34 @@ export default function ServicesPage() {
                   </div>
                 )}
 
+                <div className="mb-4 space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      {selectedService.additionalInfoLabel || 'Додаткова інформація (необов\'язково)'}
+                    </label>
+                    <textarea
+                      value={additionalInfo}
+                      onChange={(e) => setAdditionalInfo(e.target.value)}
+                      placeholder="Напишіть тут усі деталі, які вважаєте важливими..."
+                      rows={3}
+                      className="w-full p-3 bg-gray-50 rounded-xl border border-gray-200 focus:border-[#c9a84c] focus:ring-2 focus:ring-[#c9a84c]/30 outline-none transition text-sm"
+                    />
+                  </div>
+
+                  {selectedService.hasFileUpload !== false && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                        Завантажте файл (модель, ескіз, фото, креслення) <span className="text-xs text-gray-400">(необов'язково)</span>
+                      </label>
+                      <FileUpload onFileSelect={setUploadedFile} />
+                      {uploadedFile && (
+                        <p className="text-[#1a3c34] text-sm mt-2">✅ Вибрано: {uploadedFile.name}</p>
+                      )}
+                      <p className="text-xs text-gray-400 mt-1">Дозволені формати: STL, OBJ, 3MF, PNG, JPG, JPEG, WEBP, GIF, ZIP, RAR, 7Z, PDF (макс. 100MB)</p>
+                    </div>
+                  )}
+                </div>
+
                 <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                   <div>
                     <p className="text-xs text-gray-400">Вартість</p>
@@ -718,14 +810,12 @@ export default function ServicesPage() {
                       {calculatedPrice !== null ? `${calculatedPrice} ₴` : selectedService.price}
                     </p>
                   </div>
-                  {selectedService.priceValue > 0 && (
-                    <button
-                      onClick={() => addToCartWithOptions(selectedService)}
-                      className="px-8 py-2.5 rounded-xl bg-[#1a3c34] text-white font-bold hover:bg-[#2d5a4b] transition-all duration-300 shadow-md shadow-[#1a3c34]/20 text-base"
-                    >
-                      Додати в кошик
-                    </button>
-                  )}
+                  <button
+                    onClick={() => addToCartWithOptions(selectedService)}
+                    className="px-8 py-2.5 rounded-xl bg-[#1a3c34] text-white font-bold hover:bg-[#2d5a4b] transition-all duration-300 shadow-md shadow-[#1a3c34]/20 text-base"
+                  >
+                    {selectedService.priceValue > 0 ? 'Додати в кошик' : 'Замовити'}
+                  </button>
                 </div>
               </div>
             </motion.div>

@@ -60,6 +60,35 @@ const materials = [
     applications: 'Ущільнювачі, чохли, прокладки, амортизатори, гнучкі зєднання',
     longDesc: 'TPU (термопластичний поліуретан) – еластичний та гнучкий матеріал, схожий на гуму. Витримує багаторазові згинання та розтягування. Ідеальний для виробів, які потребують амортизації або герметизації.',
   },
+  // ===== НОВІ МАТЕРІАЛИ =====
+  {
+    name: 'ASA',
+    shortDesc: 'Стійкий до УФ, погоди',
+    color: '#f59e0b',
+    img: '/images/materials/asa.jpg',
+    characteristics: {
+      temperature: '240-260°C',
+      strength: 'Висока',
+      flexibility: 'Середня',
+      durability: 'Дуже висока',
+    },
+    applications: 'Зовнішні деталі, автомобільні компоненти, вуличні конструкції',
+    longDesc: 'ASA (акрилонітрил-стирол-акрилат) – має всі переваги ABS, але значно стійкіший до ультрафіолету та погодних умов. Не жовтіє на сонці, ідеальний для виробів, що використовуються на відкритому повітрі.',
+  },
+  {
+    name: 'PA (нейлон)',
+    shortDesc: 'Дуже міцний, зносостійкий',
+    color: '#8b5cf6',
+    img: '/images/materials/pa.jpg',
+    characteristics: {
+      temperature: '250-280°C',
+      strength: 'Дуже висока',
+      flexibility: 'Середня',
+      durability: 'Дуже висока',
+    },
+    applications: 'Шестерні, підшипники, механічні деталі, інженерні прототипи',
+    longDesc: 'PA (нейлон) – надміцний інженерний пластик з високою зносостійкістю та низьким коефіцієнтом тертя. Витримує великі навантаження та високі температури. Використовується для функціональних деталей, що зазнають тертя.',
+  },
 ];
 
 export default function Materials() {
@@ -86,7 +115,7 @@ export default function Materials() {
           </p>
         </motion.div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {materials.map((m, idx) => {
             const isActive = activeIndex === idx;
             const isHovered = hoveredIndex === idx;
@@ -126,7 +155,7 @@ export default function Materials() {
                       fill
                       className="object-cover transition duration-500"
                       sizes="(max-width: 768px) 100vw, 25vw"
-                      loading={idx === 0 ? "eager" : "lazy"}
+                      loading={idx < 2 ? "eager" : "lazy"}
                       style={{
                         transform: isHovered ? 'scale(1.05)' : 'scale(1)',
                       }}

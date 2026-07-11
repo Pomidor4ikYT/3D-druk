@@ -6,6 +6,7 @@ import PageTransition from '@/components/PageTransition';
 import AIConsultant from '@/components/ui/AIConsultant';
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'),
   title: '3D-друк на замовлення | Сучасні вироби з пластику',
   description: 'Професійний 3D-друк іграшок, прототипів, деталей для ЗСУ. Розрахунок за 15 хвилин. Доставка по всій Україні.',
   openGraph: {

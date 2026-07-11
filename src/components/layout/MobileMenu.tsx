@@ -2,11 +2,15 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
-import Button from '@/components/ui/Button';
+import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useCartStore } from '@/store/cartStore';
 
 export default function MobileMenu({ isOpen, onClose, links }: { isOpen: boolean; onClose: () => void; links: { href: string; label: string }[] }) {
   const [mounted, setMounted] = useState(false);
+  const { items } = useCartStore();
+  const cartCount = items.reduce((sum, i) => sum + i.quantity, 0);
+  const pathname = usePathname();
 
   useEffect(() => {
     setMounted(true);
@@ -61,29 +65,87 @@ export default function MobileMenu({ isOpen, onClose, links }: { isOpen: boolean
             </div>
 
             <nav className="flex-1 flex flex-col gap-2 p-6">
-              {links.map((link, idx) => (
-                <motion.div
-                  key={link.href}
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: idx * 0.05 }}
-                >
-                  <Link
-                    href={link.href}
-                    onClick={onClose}
-                    className="flex items-center gap-3 text-lg font-medium text-gray-700 hover:text-[#c9a84c] transition-colors py-3 px-4 rounded-xl hover:bg-[#f5f0eb] group"
+              {links.map((link, idx) => {
+                const isActive = pathname === link.href;
+                return (
+                  <motion.div
+                    key={link.href}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: idx * 0.05 }}
                   >
-                    <span className="w-1 h-1 bg-[#c9a84c] rounded-full group-hover:w-2 transition-all" />
-                    {link.label}
-                  </Link>
-                </motion.div>
-              ))}
+                    <Link
+                      href={link.href}
+                      onClick={onClose}
+                      className={`flex items-center gap-3 text-lg font-medium transition-colors py-3 px-4 rounded-xl group ${
+                        isActive 
+                          ? 'text-[#c9a84c] bg-[#f5f0eb]' 
+                          : 'text-gray-700 hover:text-[#c9a84c] hover:bg-[#f5f0eb]'
+                      }`}
+                    >
+                      <span className={`h-2 w-2 rounded-full transition-all ${
+                        isActive ? 'bg-[#c9a84c] w-3' : 'bg-[#c9a84c]'
+                      }`} />
+                      {link.label}
+                    </Link>
+                  </motion.div>
+                );
+              })}
+
+              {/* Кошик */}
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: links.length * 0.05 }}
+              >
+                <Link
+                  href="/cart"
+                  onClick={onClose}
+                  className={`flex items-center gap-3 text-lg font-medium transition-colors py-3 px-4 rounded-xl group ${
+                    pathname === '/cart' 
+                      ? 'text-[#c9a84c] bg-[#f5f0eb]' 
+                      : 'text-gray-700 hover:text-[#c9a84c] hover:bg-[#f5f0eb]'
+                  }`}
+                >
+                  <span className={`h-2 w-2 rounded-full transition-all ${
+                    pathname === '/cart' ? 'bg-[#c9a84c] w-3' : 'bg-[#c9a84c]'
+                  }`} />
+                  Кошик
+                  {cartCount > 0 && (
+                    <span className="ml-auto bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                      {cartCount}
+                    </span>
+                  )}
+                </Link>
+              </motion.div>
+
+              {/* Замовити */}
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: (links.length + 1) * 0.05 }}
+              >
+                <Link
+                  href="/order"
+                  onClick={onClose}
+                  className={`flex items-center gap-3 text-lg font-medium transition-colors py-3 px-4 rounded-xl group ${
+                    pathname === '/order' 
+                      ? 'bg-[#c9a84c] text-white' 
+                      : 'bg-[#1a3c34] text-white hover:bg-[#2d5a4b]'
+                  }`}
+                >
+                  <span className={`h-2 w-2 rounded-full transition-all ${
+                    pathname === '/order' ? 'bg-white w-3' : 'bg-[#c9a84c]'
+                  }`} />
+                  Замовити
+                </Link>
+              </motion.div>
             </nav>
 
             <div className="p-6 border-t border-gray-200 space-y-4">
               <div className="flex justify-center gap-4 text-gray-400">
-                <a href="#" className="hover:text-[#c9a84c] transition">Telegram</a>
-                <a href="#" className="hover:text-[#c9a84c] transition">Instagram</a>
+                <a href="https://t.me/3d_print" target="_blank" rel="noopener noreferrer" className="hover:text-[#c9a84c] transition">Telegram</a>
+                <a href="https://instagram.com/3d_print_ua" target="_blank" rel="noopener noreferrer" className="hover:text-[#c9a84c] transition">Instagram</a>
                 <a href="#" className="hover:text-[#c9a84c] transition">Facebook</a>
               </div>
             </div>
