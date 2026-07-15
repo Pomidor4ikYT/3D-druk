@@ -10,13 +10,14 @@ function computeGeometryStats(geometry: THREE.BufferGeometry) {
   const index = geometry.getIndex();
   if (!pos) return { volume: 0, surfaceArea: 0, triangleCount: 0 };
 
+  const positionAttr = pos as THREE.BufferAttribute;
   const vertices: number[] = [];
-  for (let i = 0; i < pos.count; i++) {
-    vertices.push(pos.getX(i), pos.getY(i), pos.getZ(i));
+  for (let i = 0; i < positionAttr.count; i++) {
+    vertices.push(positionAttr.getX(i), positionAttr.getY(i), positionAttr.getZ(i));
   }
 
   const indices = index ? index.array : null;
-  const triCount = indices ? indices.length / 3 : pos.count / 3;
+  const triCount = indices ? indices.length / 3 : positionAttr.count / 3;
   let volume = 0;
   let surfaceArea = 0;
 
@@ -51,7 +52,16 @@ function computeGeometryStats(geometry: THREE.BufferGeometry) {
 }
 
 function getBoundingBox(geometry: THREE.BufferGeometry) {
-  const box = new THREE.Box3().setFromBufferAttribute(geometry.getAttribute('position'));
+  const pos = geometry.getAttribute('position');
+  if (!pos) {
+    return {
+      min: { x: 0, y: 0, z: 0 },
+      max: { x: 0, y: 0, z: 0 },
+      dimensions: { width: 0, height: 0, depth: 0 },
+    };
+  }
+  const posAttr = pos as THREE.BufferAttribute;
+  const box = new THREE.Box3().setFromBufferAttribute(posAttr);
   const min = box.min.clone().multiplyScalar(0.1);
   const max = box.max.clone().multiplyScalar(0.1);
   const size = new THREE.Vector3().copy(max).sub(min);
@@ -86,29 +96,34 @@ function Model({ url, fileType, onLoaded }: {
 
         switch (fileType) {
           case 'stl': {
-            const { STLLoader } = await import('three/examples/jsm/loaders/STLLoader');
+            // @ts-ignore – динамічний імпорт
+            const { STLLoader } = await import('three/examples/jsm/loaders/STLLoader.js');
             LoaderClass = STLLoader;
             break;
           }
           case 'obj': {
-            const { OBJLoader } = await import('three/examples/jsm/loaders/OBJLoader');
+            // @ts-ignore
+            const { OBJLoader } = await import('three/examples/jsm/loaders/OBJLoader.js');
             LoaderClass = OBJLoader;
             break;
           }
           case 'ply': {
-            const { PLYLoader } = await import('three/examples/jsm/loaders/PLYLoader');
+            // @ts-ignore
+            const { PLYLoader } = await import('three/examples/jsm/loaders/PLYLoader.js');
             LoaderClass = PLYLoader;
             break;
           }
           case 'glb':
           case 'gltf': {
-            const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader');
+            // @ts-ignore
+            const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js');
             LoaderClass = GLTFLoader;
             isGLTF = true;
             break;
           }
           case 'fbx': {
-            const { FBXLoader } = await import('three/examples/jsm/loaders/FBXLoader');
+            // @ts-ignore
+            const { FBXLoader } = await import('three/examples/jsm/loaders/FBXLoader.js');
             LoaderClass = FBXLoader;
             break;
           }
@@ -122,14 +137,11 @@ function Model({ url, fileType, onLoaded }: {
 
         const onLoadSuccess = (result: any) => {
           if (!isMounted) return;
-          let object: THREE.Object3D | THREE.BufferGeometry;
           let geometries: THREE.BufferGeometry[] = [];
 
           if (result.isBufferGeometry) {
-            object = result;
             geometries = [result];
           } else if (result.isObject3D) {
-            object = result;
             result.traverse((child: any) => {
               if (child.isMesh && child.geometry) {
                 geometries.push(child.geometry);
@@ -159,20 +171,23 @@ function Model({ url, fileType, onLoaded }: {
             for (const g of geometries) {
               const pos = g.getAttribute('position');
               if (pos) {
-                for (let i = 0; i < pos.count; i++) {
-                  positions.push(pos.getX(i), pos.getY(i), pos.getZ(i));
+                const posAttr = pos as THREE.BufferAttribute;
+                for (let i = 0; i < posAttr.count; i++) {
+                  positions.push(posAttr.getX(i), posAttr.getY(i), posAttr.getZ(i));
                 }
               }
               const n = g.getAttribute('normal');
               if (n) {
-                for (let i = 0; i < n.count; i++) {
-                  normals.push(n.getX(i), n.getY(i), n.getZ(i));
+                const nAttr = n as THREE.BufferAttribute;
+                for (let i = 0; i < nAttr.count; i++) {
+                  normals.push(nAttr.getX(i), nAttr.getY(i), nAttr.getZ(i));
                 }
               }
               const uv = g.getAttribute('uv');
               if (uv) {
-                for (let i = 0; i < uv.count; i++) {
-                  uvs.push(uv.getX(i), uv.getY(i));
+                const uvAttr = uv as THREE.BufferAttribute;
+                for (let i = 0; i < uvAttr.count; i++) {
+                  uvs.push(uvAttr.getX(i), uvAttr.getY(i));
                 }
               }
             }
@@ -196,9 +211,12 @@ function Model({ url, fileType, onLoaded }: {
 
           // Центрування моделі для відображення
           if (result.isBufferGeometry) {
-            const box3 = new THREE.Box3().setFromBufferAttribute(result.getAttribute('position'));
-            const center = box3.getCenter(new THREE.Vector3());
-            result.translate(-center.x, -center.y, -center.z);
+            const posAttr = result.getAttribute('position') as THREE.BufferAttribute;
+            if (posAttr) {
+              const box3 = new THREE.Box3().setFromBufferAttribute(posAttr);
+              const center = box3.getCenter(new THREE.Vector3());
+              result.translate(-center.x, -center.y, -center.z);
+            }
             setModel(result);
           } else if (result.isObject3D) {
             const box3 = new THREE.Box3().setFromObject(result);
@@ -214,7 +232,6 @@ function Model({ url, fileType, onLoaded }: {
             setModel(result);
           }
 
-          // Викликаємо onLoaded один раз
           if (!loadedRef.current) {
             loadedRef.current = true;
             onLoaded(modelData);
@@ -222,16 +239,18 @@ function Model({ url, fileType, onLoaded }: {
           setLoading(false);
         };
 
+        const onError = (err: any) => {
+          console.error('Помилка завантаження:', err);
+          if (isMounted) {
+            setError('Не вдалося завантажити модель');
+            setLoading(false);
+          }
+        };
+
         if (isGLTF) {
-          loader.load(url, (gltf: any) => onLoadSuccess(gltf.scene), undefined, (err: any) => {
-            console.error('GLTF помилка:', err);
-            if (isMounted) { setError('Не вдалося завантажити модель'); setLoading(false); }
-          });
+          loader.load(url, (gltf: any) => onLoadSuccess(gltf.scene), undefined, onError);
         } else {
-          loader.load(url, onLoadSuccess, undefined, (err: any) => {
-            console.error('Помилка завантаження:', err);
-            if (isMounted) { setError('Не вдалося завантажити модель'); setLoading(false); }
-          });
+          loader.load(url, onLoadSuccess, undefined, onError);
         }
       } catch (err) {
         console.error('Критична помилка:', err);
@@ -261,9 +280,10 @@ function Model({ url, fileType, onLoaded }: {
     );
   }
 
-  if (model.isBufferGeometry) {
+  // Перевірка через властивості екземпляра
+  if ((model as any).isBufferGeometry) {
     return (
-      <mesh geometry={model}>
+      <mesh geometry={model as THREE.BufferGeometry}>
         <meshPhysicalMaterial 
           color="#c9a84c" 
           roughness={0.3} 
@@ -275,8 +295,8 @@ function Model({ url, fileType, onLoaded }: {
     );
   }
 
-  if (model.isObject3D) {
-    return <primitive object={model} />;
+  if ((model as any).isObject3D) {
+    return <primitive object={model as THREE.Object3D} />;
   }
 
   return null;
