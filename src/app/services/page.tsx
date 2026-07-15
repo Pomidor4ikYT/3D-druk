@@ -13,25 +13,25 @@ const services = [
     emoji: '🖨️',
     category: 'Друк',
     categoryColor: '#22c55e',
-    price: 'від 6 ₴/г',
-    priceValue: 6,
+    price: 'від 5 грн/г',
+    priceValue: 5,
     unit: '₴/г',
     hasCalculator: true,
     hasFileUpload: true,
     additionalInfoLabel: 'Вкажіть бажані розміри (L×W×H см), колір, кількість, особливості друку (наприклад, потрібна підтримка)',
     calculatorFields: [
       { type: 'select', label: 'Матеріал', key: 'material', options: [
-        { label: 'PLA', value: 6 },
-        { label: 'PETG', value: 7 },
-        { label: 'ABS', value: 7 },
-        { label: 'ASA', value: 8 },
-        { label: 'TPU', value: 10 },
-        { label: 'PA (нейлон)', value: 15 },
-      ], default: 6 },
+        { label: 'PLA', value: 5 },
+        { label: 'ABS', value: 5 },
+        { label: 'PETG', value: 10 },
+        { label: 'ASA', value: 12 },
+        { label: 'TPU', value: 8 },
+        { label: 'PA (нейлон)', value: 20 },
+      ], default: 5 },
       { type: 'range', label: 'Вага моделі (г) – орієнтовно', key: 'weight', min: 1, max: 5000, default: 50, step: 1 },
       { type: 'range', label: 'Кількість', key: 'quantity', min: 1, max: 500, default: 1, step: 1 },
     ],
-    longDesc: 'Друк будь-яких 3D-моделей з точністю до 0.1 мм. Матеріали: PLA, PETG, ABS, ASA, TPU, PA (нейлон). Розмір до 25,6×25,6×25,6 см. Терміни від 1 дня. Завантажте файл моделі (STL, OBJ, 3MF) – ми розрахуємо точну вартість після аналізу моделі.',
+    longDesc: 'Друк будь-яких 3D-моделей з точністю до 0.1 мм. Матеріали: PLA, ABS, PETG, ASA, TPU, PA (нейлон). Розмір до 25,6×25,6×25,6 см. Терміни від 1 дня. Завантажте файл моделі (STL, OBJ, 3MF) – ми розрахуємо точну вартість після аналізу моделі.',
   },
   {
     id: 2,
@@ -126,19 +126,19 @@ const services = [
     emoji: '⚙️',
     category: 'Друк',
     categoryColor: '#22c55e',
-    price: 'від 300 ₴',
-    priceValue: 300,
+    price: 'від 500 ₴',
+    priceValue: 500,
     unit: '₴',
     hasCalculator: true,
     hasFileUpload: true,
     additionalInfoLabel: 'Вкажіть цільове призначення прототипу, бажані матеріали та розміри. Завантажте модель (STL, OBJ, 3MF).',
     calculatorFields: [
       { type: 'select', label: 'Матеріал', key: 'material', options: [
-        { label: 'PLA', value: 6 },
-        { label: 'PETG', value: 7 },
-        { label: 'ABS', value: 7 },
-        { label: 'ASA', value: 8 },
-      ], default: 6 },
+        { label: 'PLA', value: 5 },
+        { label: 'ABS', value: 5 },
+        { label: 'PETG', value: 10 },
+        { label: 'ASA', value: 12 },
+      ], default: 5 },
       { type: 'range', label: 'Вага (г)', key: 'weight', min: 1, max: 5000, default: 50, step: 1 },
     ],
     longDesc: 'Швидке прототипування для тестування форми, функціональності та ергономіки. Терміни від 1 дня. Завантажте файл моделі – ми виготовимо прототип для ваших тестів.',
@@ -188,18 +188,18 @@ const services = [
     emoji: '🔩',
     category: 'Обробка',
     categoryColor: '#8b5cf6',
-    price: 'від 150 ₴',
-    priceValue: 150,
+    price: 'від 200 ₴',
+    priceValue: 200,
     unit: '₴',
     hasCalculator: true,
     hasFileUpload: true,
     additionalInfoLabel: 'Вкажіть тип обробки, розміри та матеріал деталі. Завантажте модель або креслення.',
     calculatorFields: [
       { type: 'select', label: 'Тип роботи', key: 'type', options: [
-        { label: 'Свердління', value: 150 },
-        { label: 'Нарізання різьби', value: 200 },
-        { label: 'Доведення поверхонь', value: 250 },
-      ], default: 150 },
+        { label: 'Свердління', value: 200 },
+        { label: 'Нарізання різьби', value: 250 },
+        { label: 'Доведення поверхонь', value: 300 },
+      ], default: 200 },
       { type: 'range', label: 'Кількість операцій', key: 'count', min: 1, max: 20, default: 2, step: 1 },
     ],
     longDesc: 'Механічна обробка надрукованих деталей: свердління, нарізання різьби, шліфування, полірування. Завантажте модель або креслення для точної роботи.',
@@ -211,18 +211,18 @@ const services = [
     emoji: '🔦',
     category: 'Обробка',
     categoryColor: '#8b5cf6',
-    price: 'від 100 ₴',
-    priceValue: 100,
+    price: 'від 150 ₴',
+    priceValue: 150,
     unit: '₴',
     hasCalculator: true,
     hasFileUpload: true,
     additionalInfoLabel: 'Вкажіть текст, зображення або логотип для гравіювання. Завантажте файл з макетом (SVG, PNG, JPG).',
     calculatorFields: [
       { type: 'select', label: 'Матеріал', key: 'material', options: [
-        { label: 'Пластик', value: 100 },
-        { label: 'Дерево', value: 150 },
-        { label: 'Шкіра', value: 200 },
-      ], default: 100 },
+        { label: 'Пластик', value: 150 },
+        { label: 'Дерево', value: 200 },
+        { label: 'Шкіра', value: 250 },
+      ], default: 150 },
       { type: 'range', label: 'Площа (см²)', key: 'area', min: 1, max: 100, default: 10, step: 1 },
     ],
     longDesc: 'Наносимо будь-які зображення лазером. Ідеально для персоналізації виробів, сувенірів, брендування. Завантажте макет – ми підготуємо файл для гравіювання.',
@@ -258,18 +258,18 @@ const services = [
     emoji: '📚',
     category: 'Освіта',
     categoryColor: '#14b8a6',
-    price: 'від 600 ₴',
-    priceValue: 600,
+    price: 'від 700 ₴',
+    priceValue: 700,
     unit: '₴',
     hasCalculator: true,
     hasFileUpload: true,
     additionalInfoLabel: 'Опишіть призначення макету, бажані матеріали, розміри. Завантажте модель або ескіз.',
     calculatorFields: [
       { type: 'select', label: 'Тип макету', key: 'type', options: [
-        { label: 'Навчальний (для демонстрації)', value: 600 },
-        { label: 'Демонстраційний (для виставок)', value: 1000 },
-        { label: 'Інтерактивний (з рухомими частинами)', value: 1500 },
-      ], default: 600 },
+        { label: 'Навчальний (для демонстрації)', value: 700 },
+        { label: 'Демонстраційний (для виставок)', value: 1100 },
+        { label: 'Інтерактивний (з рухомими частинами)', value: 1600 },
+      ], default: 700 },
       { type: 'range', label: 'Розмір (см)', key: 'size', min: 5, max: 50, default: 15, step: 1 },
     ],
     longDesc: 'Створюємо навчальні макети для шкіл, вишів, медичних установ. Допомагаємо візуалізувати складні концепції. Завантажте модель або технічне завдання.',
@@ -343,7 +343,6 @@ export default function ServicesPage() {
   };
 
   const addToCartWithOptions = (service: typeof services[0]) => {
-    // Для безкалькуляторних послуг (консультація, волонтерська)
     if (!service.hasCalculator || !service.calculatorFields) {
       const options: Record<string, any> = {};
       if (additionalInfo.trim()) {
@@ -369,7 +368,6 @@ export default function ServicesPage() {
       return;
     }
 
-    // Для послуг з калькулятором
     if (calculatedPrice === null) {
       calculatePrice(service);
       return;
@@ -554,7 +552,6 @@ export default function ServicesPage() {
                   >
                     Детальніше
                   </button>
-                  {/* Кнопка завжди відкриває модалку */}
                   <button
                     onClick={() => openServiceModal(service)}
                     className="flex-1 px-4 py-2 text-xs font-semibold rounded-lg bg-[#1a3c34] text-white hover:bg-[#2d5a4b] transition-all duration-200 shadow-sm hover:shadow-md flex items-center justify-center gap-1"

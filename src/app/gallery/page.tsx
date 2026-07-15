@@ -82,7 +82,7 @@ function PurchaseModal({
               fill
               className="object-contain"
               sizes="100vw"
-              loading="eager" // для модалки завантажуємо одразу
+              loading="eager"
             />
           </div>
         </div>
@@ -202,7 +202,7 @@ export default function GalleryPage() {
         )}
       </AnimatePresence>
 
-      <h1 className="text-center mb-4 text-[#1a3c34] font-heading text-4xl font-bold">Галерея робіт</h1>
+      <h1 className="text-center mb-4 text-[#1a3c34] font-heading text-4xl font-bold">Каталог</h1>
       <p className="text-center text-gray-500 mb-10 max-w-2xl mx-auto">
         Результати нашої роботи — від дрібних деталей до великих макетів.
       </p>
@@ -232,7 +232,6 @@ export default function GalleryPage() {
             whileHover={{ scale: 1.02 }}
             className="relative h-72 rounded-2xl overflow-hidden shadow-lg cursor-pointer group border border-gray-200"
           >
-            {/* Клік на картку – відкриває фото на повний екран */}
             <div onClick={() => setSelectedPhoto(images.indexOf(img))} className="w-full h-full relative">
               <Image
                 src={img.src}
@@ -240,19 +239,16 @@ export default function GalleryPage() {
                 fill
                 className="object-cover group-hover:scale-105 transition duration-500"
                 sizes="(max-width: 768px) 100vw, 33vw"
-                // для перших 4 зображень (LCP) ставимо eager, для решти lazy (за замовчуванням)
                 loading={idx < 4 ? "eager" : "lazy"}
               />
             </div>
             
-            {/* Badge акції */}
             {img.discount && img.discount > 0 && (
               <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full z-10 shadow-md">
                 -{img.discount}%
               </div>
             )}
 
-            {/* Інформація на картці (завжди видна) */}
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
               <div className="flex items-end justify-between">
                 <div>
@@ -272,7 +268,6 @@ export default function GalleryPage() {
               </div>
             </div>
 
-            {/* Кнопка "Купити" – з'являється при наведенні, відкриває модалку покупки */}
             <div className="absolute bottom-20 right-3 z-10 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
               <button
                 onClick={(e) => {
@@ -300,7 +295,6 @@ export default function GalleryPage() {
         </div>
       </div>
 
-      {/* Модалка перегляду фото (повний екран) */}
       <AnimatePresence>
         {selectedPhoto !== null && (
           <div
@@ -341,7 +335,6 @@ export default function GalleryPage() {
         )}
       </AnimatePresence>
 
-      {/* Модалка покупки (вибір кількості) */}
       <PurchaseModal
         item={selectedPurchase}
         isOpen={!!selectedPurchase}

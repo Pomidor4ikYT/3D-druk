@@ -60,7 +60,6 @@ const materials = [
     applications: 'Ущільнювачі, чохли, прокладки, амортизатори, гнучкі зєднання',
     longDesc: 'TPU (термопластичний поліуретан) – еластичний та гнучкий матеріал, схожий на гуму. Витримує багаторазові згинання та розтягування. Ідеальний для виробів, які потребують амортизації або герметизації.',
   },
-  // ===== НОВІ МАТЕРІАЛИ =====
   {
     name: 'ASA',
     shortDesc: 'Стійкий до УФ, погоди',
@@ -147,8 +146,8 @@ export default function Materials() {
                   transition={{ type: 'spring', damping: 20 }}
                   onClick={() => toggleMaterial(idx)}
                 >
-                  {/* Фото */}
-                  <div className="relative w-full h-40 mb-3 rounded-xl overflow-hidden bg-gray-100">
+                  {/* Фото збільшеної висоти */}
+                  <div className="relative w-full h-56 mb-3 rounded-xl overflow-hidden bg-gray-100">
                     <Image
                       src={m.img}
                       alt={m.name}
@@ -169,7 +168,6 @@ export default function Materials() {
                     </div>
                   </div>
 
-                  {/* Заголовок */}
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="text-xl font-bold text-[#1a3c34]">{m.name}</h3>
@@ -184,7 +182,6 @@ export default function Materials() {
                     </motion.div>
                   </div>
 
-                  {/* Детальна інформація (розкривається) */}
                   <AnimatePresence>
                     {isActive && (
                       <motion.div

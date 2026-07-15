@@ -21,8 +21,8 @@ export default function Footer() {
           <ul className="space-y-2 text-sm">
             <li><Link href="/" className="text-gray-300 hover:text-[#7ec8a3] transition">Головна</Link></li>
             <li><Link href="/services" className="text-gray-300 hover:text-[#7ec8a3] transition">Послуги</Link></li>
-            <li><Link href="/printer" className="text-gray-300 hover:text-[#7ec8a3] transition">Принтер</Link></li>
-            <li><Link href="/gallery" className="text-gray-300 hover:text-[#7ec8a3] transition">Галерея</Link></li>
+            <li><Link href="/printer" className="text-gray-300 hover:text-[#7ec8a3] transition">Принтери</Link></li>
+            <li><Link href="/gallery" className="text-gray-300 hover:text-[#7ec8a3] transition">Каталог</Link></li>
             <li><Link href="/contacts" className="text-gray-300 hover:text-[#7ec8a3] transition">Контакти</Link></li>
           </ul>
         </div>

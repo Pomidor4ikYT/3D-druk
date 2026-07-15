@@ -6,23 +6,27 @@ interface FileUploadProps {
   onFileSelect: (file: File | null) => void;
 }
 
+// Список підтримуваних 3D-форматів (для перегляду)
+const supportedExtensions = ['stl', 'obj', 'ply', 'glb', 'gltf', 'fbx'];
+// Додаткові формати для завантаження (наприклад, зображення, архіви) – їх можна завантажити, але 3D-перегляд недоступний
+// Для простоти обмежуємо лише підтримуваними, щоб уникнути помилок
+const allowedExtensions = supportedExtensions;
+
 export default function FileUpload({ onFileSelect }: FileUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragActive, setDragActive] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
 
-  const allowedExtensions = ['stl', 'obj', '3mf', 'png', 'jpg', 'jpeg', 'webp', 'gif', 'zip', 'rar', '7z', 'pdf'];
-  const imageExtensions = ['png', 'jpg', 'jpeg', 'webp', 'gif'];
-
   const handleFile = (file: File) => {
     const ext = file.name.split('.').pop()?.toLowerCase();
     if (!ext || !allowedExtensions.includes(ext)) {
-      alert('Будь ласка, завантажте файл у форматі: STL, OBJ, 3MF, PNG, JPG, JPEG, WEBP, GIF, ZIP, RAR, 7Z, PDF');
+      alert(
+        `Будь ласка, завантажте файл у форматі: ${supportedExtensions.join(', ')}.\nАрхіви (RAR, ZIP) не підтримуються – розпакуйте їх перед завантаженням.`
+      );
       return;
     }
 
-    // ЗБІЛЬШЕНО ДО 100 МБ
     if (file.size > 100 * 1024 * 1024) {
       alert('Файл занадто великий. Максимальний розмір – 100MB');
       return;
@@ -31,6 +35,8 @@ export default function FileUpload({ onFileSelect }: FileUploadProps) {
     onFileSelect(file);
     setFileName(file.name);
 
+    // Для зображень – показуємо прев'ю
+    const imageExtensions = ['png', 'jpg', 'jpeg', 'webp', 'gif'];
     if (imageExtensions.includes(ext)) {
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -70,7 +76,7 @@ export default function FileUpload({ onFileSelect }: FileUploadProps) {
         <input
           ref={inputRef}
           type="file"
-          accept=".stl,.obj,.3mf,.png,.jpg,.jpeg,.webp,.gif,.zip,.rar,.7z,.pdf"
+          accept={`.${supportedExtensions.join(',.')}`}
           onChange={(e) => e.target.files && handleFile(e.target.files[0])}
           className="hidden"
         />
@@ -79,7 +85,9 @@ export default function FileUpload({ onFileSelect }: FileUploadProps) {
           <div className="flex flex-col items-center gap-2 py-4">
             <span className="text-5xl">📁</span>
             <p className="text-gray-600 font-medium">Перетягніть файл або клікніть для вибору</p>
-            <p className="text-gray-400 text-sm">STL, OBJ, 3MF, PNG, JPG, WEBP, GIF, ZIP, RAR, 7Z, PDF</p>
+            <p className="text-gray-400 text-sm">
+              {supportedExtensions.map(e => `.${e}`).join(', ')}
+            </p>
           </div>
         ) : (
           <div className="flex items-center gap-4">

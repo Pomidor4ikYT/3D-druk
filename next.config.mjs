@@ -18,12 +18,18 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'upload.wikimedia.org', // для логотипів доставки
       },
-      // Додайте інші хости, якщо потрібно
     ],
-    // Якщо використовуєте зовнішні зображення без remotePatterns, можна вимкнути перевірку (не рекомендується)
-    // unoptimized: true,
   },
-  // Інші налаштування...
+ transpilePackages: ['three', '@react-three/fiber', '@react-three/drei'],
+  // Додайте порожню конфігурацію Turbopack
+  turbopack: {},
+  webpack: (config) => {
+    config.module.rules.push({
+      test: /\.(glb|gltf)$/,
+      type: 'asset/resource',
+    });
+    return config;
+  },
 };
 
 export default nextConfig;

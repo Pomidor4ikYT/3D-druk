@@ -3,10 +3,10 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const materials = [
-  { name: 'PLA', pricePerCm3: 4 },
+  { name: 'PLA', pricePerCm3: 5 },
   { name: 'ABS', pricePerCm3: 5 },
-  { name: 'PETG', pricePerCm3: 6 },
-  { name: 'TPU', pricePerCm3: 7 },
+  { name: 'PETG', pricePerCm3: 10 },
+  { name: 'TPU', pricePerCm3: 8 },
 ];
 
 interface CalculatorModalProps {
@@ -45,19 +45,19 @@ export default function CalculatorModal({ isOpen, onClose }: CalculatorModalProp
         <h3 className="text-2xl font-serif font-bold text-[#1a3c34] mb-6">Калькулятор вартості</h3>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Матеріал</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Матеріал (ціна за грам)</label>
             <select
               value={material.name}
               onChange={(e) => setMaterial(materials.find(m => m.name === e.target.value) || materials[0])}
               className="w-full p-3 bg-gray-50 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#c9a84c] outline-none"
             >
               {materials.map(m => (
-                <option key={m.name} value={m.name}>{m.name} ({m.pricePerCm3} грн/см³)</option>
+                <option key={m.name} value={m.name}>{m.name} ({m.pricePerCm3} ₴/г)</option>
               ))}
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Об'єм моделі (см³)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Вага моделі (г)</label>
             <input
               type="number"
               value={volume}
@@ -86,7 +86,7 @@ export default function CalculatorModal({ isOpen, onClose }: CalculatorModalProp
               className="mt-4 p-4 bg-[#f5f0eb] rounded-xl border border-[#c9a84c]/30 text-center"
             >
               <p className="text-sm text-gray-600">Орієнтовна вартість:</p>
-              <p className="text-3xl font-serif font-bold text-[#1a3c34]">{total.toLocaleString()} грн</p>
+              <p className="text-3xl font-serif font-bold text-[#1a3c34]">{total.toFixed(2)} грн</p>
               <p className="text-xs text-gray-400 mt-1">* Точна ціна після узгодження моделі</p>
             </motion.div>
           )}
