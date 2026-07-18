@@ -21,9 +21,22 @@ export const authOptions: AuthOptions = {
   },
   pages: {
     signIn: "/admin",
+    error: "/admin", // додано, щоб бачити помилки
   },
   session: {
     strategy: "jwt",
+  },
+  // Явне налаштування кук для запобігання проблем з редиректами
+  cookies: {
+    sessionToken: {
+      name: 'next-auth.session-token',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NEXTAUTH_URL?.startsWith('https://') || false,
+      },
+    },
   },
 };
 
