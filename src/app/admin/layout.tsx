@@ -8,17 +8,22 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
+  // Отримуємо сесію на сервері
   const session = await getServerSession(authOptions);
 
-  // Якщо немає сесії, перенаправляємо на /admin (сторінка входу)
+  // Якщо сесії немає – перенаправляємо на сторінку входу (/admin)
+  // Це запобігає доступу до захищених сторінок без авторизації
   if (!session) {
     redirect('/admin');
   }
 
   return (
     <div className="flex min-h-screen bg-gray-50">
+      {/* Бічна навігація */}
       <Sidebar />
-      <div className="ml-64 flex-1 p-6 md:p-8 overflow-y-auto min-h-screen">
+      
+      {/* Основний контент – з відступом для десктопу */}
+      <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto min-h-screen md:ml-64">
         {children}
       </div>
     </div>
