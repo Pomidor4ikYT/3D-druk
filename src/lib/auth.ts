@@ -10,7 +10,6 @@ export const authOptions: AuthOptions = {
   ],
   callbacks: {
     async signIn({ user }) {
-      // Дозволяємо вхід тільки для адміна
       return user.email === process.env.ADMIN_EMAIL;
     },
     async session({ session }) {

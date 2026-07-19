@@ -3,9 +3,7 @@
 import { useSession, signIn, signOut } from 'next-auth/react';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { supabase } from '@/lib/supabase/client';
 
-// Мапа українських назв для блоків
 const blockNames: Record<string, string> = {
   hero: 'Головний банер',
   features: 'Чому обирають нас?',
@@ -22,7 +20,6 @@ export default function AdminPage() {
   const [blocks, setBlocks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Перевіряємо помилки в URL (наприклад, OAuth помилки)
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const error = urlParams.get('error');
@@ -32,10 +29,11 @@ export default function AdminPage() {
     }
   }, []);
 
-  // Завантажуємо блоки контенту, якщо користувач авторизований
   useEffect(() => {
     if (session) {
       fetchBlocks();
+    } else {
+      setLoading(false);
     }
   }, [session]);
 
@@ -44,7 +42,6 @@ export default function AdminPage() {
       const res = await fetch('/api/admin/content');
       if (!res.ok) throw new Error('Failed to fetch');
       const data = await res.json();
-      // Фільтруємо тільки блоки головної сторінки
       const excludeKeys = ['services', 'printers', 'gallery', 'contacts'];
       const filtered = data.filter((item: any) => !excludeKeys.includes(item.key));
       setBlocks(filtered);
@@ -55,7 +52,6 @@ export default function AdminPage() {
     }
   };
 
-  // Стан завантаження сесії
   if (status === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -64,7 +60,6 @@ export default function AdminPage() {
     );
   }
 
-  // Якщо не авторизований – показуємо сторінку входу
   if (!session) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
@@ -88,7 +83,6 @@ export default function AdminPage() {
     );
   }
 
-  // Якщо авторизований – показуємо дашборд з блоками
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 p-8">
@@ -121,17 +115,13 @@ export default function AdminPage() {
               <div key={item.key} className="bg-white rounded-xl shadow border border-gray-200 p-6">
                 <div className="flex justify-between items-start">
                   <h2 className="text-xl font-bold text-[#1a3c34]">{name}</h2>
-                  <div className="flex gap-2">
-                    <Link
-                      href={`/admin/content/${item.key}`}
-                      className="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition"
-                    >
-                      Редагувати
-                    </Link>
-                  </div>
+                  <Link
+                    href={`/admin/content/${item.key}`}
+                    className="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition"
+                  >
+                    Редагувати
+                  </Link>
                 </div>
-
-                {/* Прев'ю даних */}
                 <div className="mt-4 text-sm text-gray-600">
                   {typeof data === 'object' && !Array.isArray(data) && data !== null ? (
                     <div className="grid grid-cols-2 gap-1">

@@ -7,7 +7,12 @@ export default withAuth(
   },
   {
     callbacks: {
-      authorized: ({ token }) => {
+      authorized: ({ token, req }) => {
+        // Дозволяємо доступ до /admin без токена (покажемо сторінку входу)
+        if (req.nextUrl.pathname === "/admin") {
+          return true;
+        }
+        // Для всіх інших /admin/* потрібен токен
         return !!token;
       },
     },
