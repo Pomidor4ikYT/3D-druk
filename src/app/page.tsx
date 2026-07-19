@@ -10,7 +10,10 @@ import FAQ from '@/components/home/FAQ';
 import Contact from '@/components/home/Contact';
 import FinalCTA from '@/components/home/FinalCTA';
 
-// Тип для контенту
+// Вимкнути кешування для цієї сторінки, щоб бачити зміни одразу
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 type Content = {
   hero?: any;
   features?: any[];

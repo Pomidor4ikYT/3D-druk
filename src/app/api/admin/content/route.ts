@@ -8,6 +8,7 @@ export async function GET() {
     if (error) throw error;
     return NextResponse.json(data);
   } catch (e) {
+    console.error('GET error:', e);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -23,14 +24,19 @@ export async function PUT(req: Request) {
       .from('content')
       .upsert({ key, data, updated_at: new Date().toISOString() });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase upsert error:', error);
+      throw error;
+    }
     
     // Оновлюємо кеш головної сторінки та адмінки
     revalidatePath('/');
     revalidatePath('/admin');
+    revalidatePath('/admin/content');
     
     return NextResponse.json({ success: true });
   } catch (e) {
+    console.error('PUT error:', e);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -51,6 +57,7 @@ export async function DELETE(req: Request) {
     
     return NextResponse.json({ success: true });
   } catch (e) {
+    console.error('DELETE error:', e);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

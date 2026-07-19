@@ -23,6 +23,7 @@ export default function EditContentBlock() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
   const { register, handleSubmit, setValue, watch, formState: { isDirty } } = useForm<any>({
     defaultValues: { data: null }
@@ -56,6 +57,7 @@ export default function EditContentBlock() {
   const onSubmit = async (formData: any) => {
     setSaving(true);
     setError(null);
+    setSuccess(false);
     try {
       const res = await fetch('/api/admin/content', {
         method: 'PUT',
@@ -63,7 +65,10 @@ export default function EditContentBlock() {
         body: JSON.stringify({ key, data: formData.data }),
       });
       if (!res.ok) throw new Error('Помилка збереження');
-      router.push('/admin');
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 3000);
+      // Оновлюємо сторінку, щоб побачити зміни
+      router.refresh();
     } catch (err) {
       setError('Не вдалося зберегти зміни');
     } finally {
@@ -284,6 +289,7 @@ export default function EditContentBlock() {
           <div className="flex justify-between items-center pt-4 border-t">
             <div>
               {error && <p className="text-red-500 text-sm">{error}</p>}
+              {success && <p className="text-green-600 text-sm">✅ Зміни збережено!</p>}
             </div>
             <button
               type="submit"
