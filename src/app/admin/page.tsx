@@ -1,9 +1,19 @@
 "use client";
 
 import { useSession, signIn, signOut } from "next-auth/react";
+import { useEffect } from "react";
 
 export default function AdminPage() {
   const { data: session, status } = useSession();
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const error = urlParams.get('error');
+    if (error) {
+      console.error('Помилка входу:', error);
+      alert(`Помилка входу: ${error}. Перевірте консоль.`);
+    }
+  }, []);
 
   if (status === "loading") {
     return (
@@ -20,7 +30,7 @@ export default function AdminPage() {
           <h1 className="text-3xl font-bold text-[#1a3c34] mb-4">Вхід в адмін-панель</h1>
           <p className="text-gray-500 mb-6">Доступ тільки для адміністратора</p>
           <button
-            onClick={() => signIn("google")}
+            onClick={() => signIn("google", { callbackUrl: "/admin" })}
             className="flex items-center justify-center gap-3 w-full py-3 px-4 bg-white border border-gray-300 rounded-xl hover:shadow-md transition shadow-sm text-gray-700 font-medium"
           >
             <svg className="w-6 h-6" viewBox="0 0 48 48">
@@ -48,7 +58,6 @@ export default function AdminPage() {
     );
   }
 
-  // Якщо користувач залогінений – показуємо дашборд
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-7xl mx-auto">
