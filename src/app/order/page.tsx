@@ -1,6 +1,7 @@
 'use client';
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 import Button from '@/components/ui/Button';
 import FileUpload from '@/components/forms/FileUpload';
 import CalculatorModal from '@/components/order/CalculatorModal';
@@ -56,6 +57,7 @@ const getRecommendedLayerHeight = (data: any) => {
 };
 
 export default function OrderPage() {
+  const router = useRouter();
   const [form, setForm] = useState({
     name: '',
     phone: '',
@@ -68,8 +70,7 @@ export default function OrderPage() {
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState('');
   const [calcOpen, setCalcOpen] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [lastOrder, setLastOrder] = useState<typeof form | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [material, setMaterial] = useState('PLA');
   const [weight, setWeight] = useState(50);
@@ -81,6 +82,15 @@ export default function OrderPage() {
   const [autoDetected, setAutoDetected] = useState(false);
   const loadedRef = useRef(false);
 
+  // Стан помилок
+  const [errors, setErrors] = useState<{
+    name?: string;
+    phone?: string;
+    city?: string;
+    warehouse?: string;
+    file?: string;
+  }>({});
+
   const basePrice = materialPrices[material] || 5;
   const complexityFactor = 1 + (infill / 100) * infillFactor + perimeters * perimeterFactor + (0.2 / layerHeight) * layerHeightFactor;
   const totalPrice = Math.round(basePrice * weight * complexityFactor * 100) / 100;
@@ -88,17 +98,13 @@ export default function OrderPage() {
   const handleModelLoaded = (data: any) => {
     if (loadedRef.current) return;
     loadedRef.current = true;
-
-    console.log('📊 Дані моделі:', data);
     setModelInfo(data);
     setAutoDetected(true);
-
     const estimatedWeight = Math.round(data.volume * 1.24 * 10) / 10;
     setWeight(Math.max(1, estimatedWeight || 50));
     setInfill(getRecommendedInfill(data));
     setPerimeters(getRecommendedPerimeters(data));
     setLayerHeight(getRecommendedLayerHeight(data));
-
     setStatus('✅ Параметри автоматично підібрано на основі моделі!');
     setTimeout(() => setStatus(''), 5000);
   };
@@ -110,71 +116,135 @@ export default function OrderPage() {
       setAutoDetected(false);
       loadedRef.current = false;
     }
+    // Очищаємо помилку файлу при виборі
+    if (errors.file) setErrors({ ...errors, file: undefined });
   };
 
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!file) {
-    setStatus('Будь ласка, завантажте файл моделі або зображення');
-    return;
-  }
-  if (form.delivery !== 'pickup' && (!form.city.trim() || !form.warehouse.trim())) {
-    setStatus('Будь ласка, введіть місто та відділення');
-    return;
-  }
-  
-  setStatus('Надсилання...');
+  const validateForm = () => {
+    const newErrors: { name?: string; phone?: string; city?: string; warehouse?: string; file?: string } = {};
 
-  try {
-    const res = await fetch('/api/orders', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        customer: {
-          name: form.name,
-          phone: form.phone,
-          email: form.email || '',
-          comment: form.description,
-        },
-        delivery: {
-          type: form.delivery,
-          city: form.city,
-          warehouse: form.warehouse,
-        },
-        items: [
-          {
-            title: '3D-друк на замовлення',
-            material,
-            weight,
-            infill,
-            perimeters,
-            layerHeight,
-            file: file?.name || '',
-            totalPrice: totalPrice,
-          },
-        ],
-        total: totalPrice,
-        source: 'form',
-      }),
-    });
-
-    if (res.ok) {
-      setStatus('');
-      setShowSuccess(true);
-      setLastOrder({ ...form }); // <-- Додайте цей рядок
-      setForm({ name: '', phone: '', email: '', delivery: 'nova', city: '', warehouse: '', description: '' });
-      setFile(null);
-      setModelInfo(null);
-      setAutoDetected(false);
-      loadedRef.current = false;
-    } else {
-      const data = await res.json();
-      setStatus(`❌ ${data.error || 'Помилка при надсиланні замовлення'}`);
+    if (!form.name.trim()) {
+      newErrors.name = 'Будь ласка, введіть ваше ім\'я';
     }
-  } catch (e) {
-    setStatus('❌ Помилка з\'єднання. Перевірте інтернет.');
-  }
-};
+    if (!form.phone.trim()) {
+      newErrors.phone = 'Будь ласка, введіть номер телефону';
+    }
+    if (form.delivery !== 'pickup') {
+      if (!form.city.trim()) {
+        newErrors.city = 'Введіть місто доставки';
+      }
+      if (!form.warehouse.trim()) {
+        newErrors.warehouse = 'Введіть відділення доставки';
+      }
+    }
+    if (!file) {
+      newErrors.file = 'Будь ласка, завантажте файл моделі або зображення';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Валідація
+    if (!validateForm()) {
+      // Прокрутка до першого поля з помилкою
+      const firstError = document.querySelector('.border-red-500');
+      if (firstError) {
+        firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        (firstError as HTMLElement).focus();
+      }
+      return;
+    }
+
+    setIsSubmitting(true);
+    setStatus('Надсилання...');
+
+    try {
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customer: {
+            name: form.name,
+            phone: form.phone,
+            email: form.email || '',
+            comment: form.description,
+          },
+          delivery: {
+            type: form.delivery,
+            city: form.city,
+            warehouse: form.warehouse,
+          },
+          items: [
+            {
+              title: '3D-друк на замовлення',
+              material,
+              weight,
+              infill,
+              perimeters,
+              layerHeight,
+              file: file?.name || '',
+              totalPrice: totalPrice,
+            },
+          ],
+          total: totalPrice,
+          source: 'form',
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        // Зберігаємо дані замовлення для чека
+        const orderData = {
+          id: data.id || `ORDER-${Date.now()}`,
+          customer: {
+            name: form.name,
+            phone: form.phone,
+            email: form.email || '',
+            comment: form.description,
+          },
+          delivery: {
+            type: form.delivery,
+            city: form.city,
+            warehouse: form.warehouse,
+          },
+          items: [
+            {
+              title: '3D-друк на замовлення',
+              material,
+              weight,
+              infill,
+              perimeters,
+              layerHeight,
+              file: file?.name || '',
+              price: totalPrice,
+              quantity: 1,
+            },
+          ],
+          total: totalPrice,
+          created_at: new Date().toISOString(),
+        };
+        sessionStorage.setItem('lastOrder', JSON.stringify(orderData));
+        setStatus('');
+        setForm({ name: '', phone: '', email: '', delivery: 'nova', city: '', warehouse: '', description: '' });
+        setFile(null);
+        setModelInfo(null);
+        setAutoDetected(false);
+        loadedRef.current = false;
+        router.push('/order-confirmation');
+      } else {
+        const data = await res.json();
+        setStatus(`❌ ${data.error || 'Помилка при надсиланні замовлення'}`);
+      }
+    } catch (e) {
+      setStatus('❌ Помилка з\'єднання. Перевірте інтернет.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="pt-32 pb-20 container-custom max-w-4xl mx-auto">
@@ -198,10 +268,17 @@ const handleSubmit = async (e: React.FormEvent) => {
                 type="text"
                 placeholder="Іван Петренко"
                 value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                required
-                className="w-full p-3 bg-gray-50 rounded-xl border border-gray-200 focus:border-[#c9a84c] focus:ring-2 focus:ring-[#c9a84c]/30 outline-none transition"
+                onChange={(e) => {
+                  setForm({ ...form, name: e.target.value });
+                  if (errors.name) setErrors({ ...errors, name: undefined });
+                }}
+                className={`w-full p-3 bg-gray-50 rounded-xl border ${
+                  errors.name ? 'border-red-500 ring-2 ring-red-500/30' : 'border-gray-200'
+                } focus:border-[#c9a84c] focus:ring-2 focus:ring-[#c9a84c]/30 outline-none transition`}
               />
+              {errors.name && (
+                <p className="text-red-500 text-sm mt-1">{errors.name}</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Телефон *</label>
@@ -209,10 +286,17 @@ const handleSubmit = async (e: React.FormEvent) => {
                 type="tel"
                 placeholder="+38 098 0751707"
                 value={form.phone}
-                onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                required
-                className="w-full p-3 bg-gray-50 rounded-xl border border-gray-200 focus:border-[#c9a84c] focus:ring-2 focus:ring-[#c9a84c]/30 outline-none transition"
+                onChange={(e) => {
+                  setForm({ ...form, phone: e.target.value });
+                  if (errors.phone) setErrors({ ...errors, phone: undefined });
+                }}
+                className={`w-full p-3 bg-gray-50 rounded-xl border ${
+                  errors.phone ? 'border-red-500 ring-2 ring-red-500/30' : 'border-gray-200'
+                } focus:border-[#c9a84c] focus:ring-2 focus:ring-[#c9a84c]/30 outline-none transition`}
               />
+              {errors.phone && (
+                <p className="text-red-500 text-sm mt-1">{errors.phone}</p>
+              )}
             </div>
           </div>
 
@@ -235,13 +319,29 @@ const handleSubmit = async (e: React.FormEvent) => {
                 warehouse: form.warehouse,
                 deliveryType: form.delivery,
               }}
-              onChange={(val) => setForm({
-                ...form,
-                city: val.city,
-                warehouse: val.warehouse,
-                delivery: val.deliveryType,
-              })}
+              onChange={(val) => {
+                setForm({
+                  ...form,
+                  city: val.city,
+                  warehouse: val.warehouse,
+                  delivery: val.deliveryType,
+                });
+                // Очищаємо помилки доставки при зміні
+                if (errors.city || errors.warehouse) {
+                  setErrors({ ...errors, city: undefined, warehouse: undefined });
+                }
+              }}
             />
+            {form.delivery !== 'pickup' && (
+              <div className="mt-2">
+                {errors.city && (
+                  <p className="text-red-500 text-sm mt-1">{errors.city}</p>
+                )}
+                {errors.warehouse && (
+                  <p className="text-red-500 text-sm mt-1">{errors.warehouse}</p>
+                )}
+              </div>
+            )}
           </div>
 
           <div>
@@ -372,6 +472,9 @@ const handleSubmit = async (e: React.FormEvent) => {
             <label className="block text-sm font-medium text-gray-700 mb-2">Файл моделі або фото *</label>
             <FileUpload key={file ? 'has-file' : 'no-file'} onFileSelect={handleFileSelect} />
             {file && <p className="text-[#1a3c34] text-sm mt-2">✅ Вибрано: {file.name}</p>}
+            {errors.file && (
+              <p className="text-red-500 text-sm mt-1">{errors.file}</p>
+            )}
           </div>
 
           {file && (
@@ -392,86 +495,23 @@ const handleSubmit = async (e: React.FormEvent) => {
             ⚠️ Повернення браку можливе при наявності відеофіксації несправності при розпаковці.
           </div>
 
-          <Button type="submit" variant="primary" className="w-full py-4 text-lg shadow-lg shadow-[#1a3c34]/20">
-            Надіслати заявку
+          <Button
+            type="submit"
+            variant="primary"
+            disabled={isSubmitting}
+            className="w-full py-4 text-lg shadow-lg shadow-[#1a3c34]/20"
+          >
+            {isSubmitting ? 'Надсилання...' : 'Надіслати заявку'}
           </Button>
-          {status && <p className={`text-center font-medium ${status.includes('✅') ? 'text-green-600' : 'text-[#1a3c34]'}`}>{status}</p>}
+          {status && (
+            <p className={`text-center font-medium ${status.includes('✅') ? 'text-green-600' : status.includes('❌') ? 'text-red-600' : 'text-[#1a3c34]'}`}>
+              {status}
+            </p>
+          )}
         </form>
       </div>
 
       <CalculatorModal isOpen={calcOpen} onClose={() => setCalcOpen(false)} />
-
-      <AnimatePresence>
-        {showSuccess && lastOrder && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.8, opacity: 0 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl text-center relative overflow-hidden"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="absolute -top-20 -right-20 w-40 h-40 bg-[#7ec8a3]/10 rounded-full blur-2xl" />
-              <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-[#c9a84c]/10 rounded-full blur-2xl" />
-
-              <div className="relative z-10">
-                <div className="w-20 h-20 mx-auto bg-[#7ec8a3] rounded-full flex items-center justify-center mb-4 shadow-lg shadow-[#7ec8a3]/30 animate-float">
-                  <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-
-                <h3 className="text-2xl font-heading font-bold text-[#1a3c34] mb-2">Дякуємо!</h3>
-                <p className="text-gray-600 text-lg mb-2">Ваше замовлення прийнято.</p>
-                <p className="text-gray-500 text-sm mb-6">Ми зв’яжемося з вами протягом 12 годин.</p>
-
-                <div className="flex flex-col gap-2 mb-6 text-left bg-gray-50 rounded-xl p-4 border border-gray-100">
-                  <p className="text-sm text-gray-500 flex justify-between">
-                    <span>Ім’я:</span>
-                    <span className="font-medium text-gray-700">{lastOrder.name || '—'}</span>
-                  </p>
-                  <p className="text-sm text-gray-500 flex justify-between">
-                    <span>Телефон:</span>
-                    <span className="font-medium text-gray-700">{lastOrder.phone || '—'}</span>
-                  </p>
-                  <p className="text-sm text-gray-500 flex justify-between">
-                    <span>Доставка:</span>
-                    <span className="font-medium text-gray-700">
-                      {lastOrder.delivery === 'nova' ? 'Нова Пошта' : lastOrder.delivery === 'ukr' ? 'Укрпошта' : 'Самовивіз'}
-                    </span>
-                  </p>
-                  {(lastOrder.city || lastOrder.warehouse) && (
-                    <>
-                      <p className="text-sm text-gray-500 flex justify-between">
-                        <span>Місто:</span>
-                        <span className="font-medium text-gray-700">{lastOrder.city || '—'}</span>
-                      </p>
-                      <p className="text-sm text-gray-500 flex justify-between">
-                        <span>Відділення:</span>
-                        <span className="font-medium text-gray-700">{lastOrder.warehouse || '—'}</span>
-                      </p>
-                    </>
-                  )}
-                  {lastOrder.description && (
-                    <p className="text-sm text-gray-500 flex justify-between">
-                      <span>Опис:</span>
-                      <span className="font-medium text-gray-700 truncate max-w-[150px]">{lastOrder.description}</span>
-                    </p>
-                  )}
-                </div>
-
-                <button
-                  onClick={() => setShowSuccess(false)}
-                  className="btn-primary w-full py-3 text-center"
-                >
-                  Зрозуміло
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

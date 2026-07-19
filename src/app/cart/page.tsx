@@ -4,8 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import DeliverySelector from '@/components/order/DeliverySelector';
-import Toast from '@/components/ui/Toast';
 
 // Компонент модалки редагування
 function EditModal({
@@ -179,7 +179,9 @@ function EditModal({
   );
 }
 
+// Головний компонент
 export default function CartPage() {
+  const router = useRouter();
   const { items, removeItem, updateQuantity, clearCart, updateItem } = useCartStore();
   const [delivery, setDelivery] = useState({
     city: '',
@@ -192,18 +194,21 @@ export default function CartPage() {
     email: '',
     comment: '',
   });
+  const [errors, setErrors] = useState<{
+    name?: string;
+    phone?: string;
+    city?: string;
+    warehouse?: string;
+  }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isClient, setIsClient] = useState(false);
 
   const [editingItem, setEditingItem] = useState<any>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [showToast, setShowToast] = useState(false);
-  const [toastMessage, setToastMessage] = useState('');
 
   const total = items.reduce((sum, i) => sum + (i.price || 0) * (i.quantity || 1), 0);
   const totalItems = items.reduce((sum, i) => sum + i.quantity, 0);
 
-  // Перевірка наявності консультацій або волонтерських послуг
   const hasConsultationOrVolunteer = items.some(item => 
     item.category === 'Консультації' || item.category === 'Соціальне'
   );
@@ -211,6 +216,29 @@ export default function CartPage() {
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  // Функція валідації
+  const validateForm = () => {
+    const newErrors: { name?: string; phone?: string; city?: string; warehouse?: string } = {};
+
+    if (!orderForm.name.trim()) {
+      newErrors.name = 'Будь ласка, введіть ваше ім\'я';
+    }
+    if (!orderForm.phone.trim()) {
+      newErrors.phone = 'Будь ласка, введіть номер телефону';
+    }
+    if (delivery.deliveryType !== 'pickup') {
+      if (!delivery.city.trim()) {
+        newErrors.city = 'Введіть місто доставки';
+      }
+      if (!delivery.warehouse.trim()) {
+        newErrors.warehouse = 'Введіть відділення доставки';
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   if (!isClient) return null;
 
@@ -257,70 +285,92 @@ export default function CartPage() {
           values: newValues,
         },
       });
-      setShowToast(true);
-      setToastMessage(`✅ ${editingItem.title} оновлено!`);
     }
     setIsEditModalOpen(false);
     setEditingItem(null);
   };
 
-const handleCheckout = async () => {
-  if (!orderForm.name.trim() || !orderForm.phone.trim()) {
-    alert('Будь ласка, заповніть ім\'я та телефон');
-    return;
-  }
-  if (delivery.deliveryType !== 'pickup' && (!delivery.city.trim() || !delivery.warehouse.trim())) {
-    alert('Будь ласка, введіть місто та відділення');
-    return;
-  }
-  
-  setIsSubmitting(true);
-
-  try {
-    const res = await fetch('/api/orders', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        customer: {
-          name: orderForm.name,
-          phone: orderForm.phone,
-          email: orderForm.email || '',
-          comment: orderForm.comment,
-        },
-        delivery: {
-          type: delivery.deliveryType,
-          city: delivery.city,
-          warehouse: delivery.warehouse,
-        },
-        items: items.map(item => ({
-          title: item.title,
-          price: item.price,
-          quantity: item.quantity,
-          options: item.options || {},
-          category: item.category,
-        })),
-        total: total,
-        source: 'cart',
-      }),
-    });
-
-    if (res.ok) {
-      alert(`✅ Замовлення на ${total} ₴ оформлено!`);
-      clearCart();
-      // Можна перенаправити на сторінку подяки
-      // router.push('/thank-you');
-    } else {
-      const data = await res.json();
-      alert(`❌ Помилка: ${data.error || 'Спробуйте пізніше'}`);
+  const handleCheckout = async () => {
+    // Валідація
+    if (!validateForm()) {
+      // Прокрутка до першого поля з помилкою
+      const firstError = document.querySelector('.border-red-500');
+      if (firstError) {
+        firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        (firstError as HTMLElement).focus();
+      }
+      return;
     }
-  } catch (e) {
-    alert('❌ Помилка з\'єднання. Перевірте інтернет.');
-  } finally {
-    setIsSubmitting(false);
-  }
-};
 
-  // Покращена функція визначення зображення
+    setIsSubmitting(true);
+
+    try {
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customer: {
+            name: orderForm.name,
+            phone: orderForm.phone,
+            email: orderForm.email || '',
+            comment: orderForm.comment,
+          },
+          delivery: {
+            type: delivery.deliveryType,
+            city: delivery.city,
+            warehouse: delivery.warehouse,
+          },
+          items: items.map(item => ({
+            title: item.title,
+            price: item.price,
+            quantity: item.quantity,
+            options: item.options || {},
+            category: item.category,
+          })),
+          total: total,
+          source: 'cart',
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const orderData = {
+          id: data.id || `ORDER-${Date.now()}`,
+          customer: {
+            name: orderForm.name,
+            phone: orderForm.phone,
+            email: orderForm.email || '',
+            comment: orderForm.comment,
+          },
+          delivery: {
+            type: delivery.deliveryType,
+            city: delivery.city,
+            warehouse: delivery.warehouse,
+          },
+          items: items.map(item => ({
+            title: item.title,
+            price: item.price,
+            quantity: item.quantity,
+            options: item.options || {},
+            category: item.category,
+          })),
+          total: total,
+          created_at: new Date().toISOString(),
+        };
+        sessionStorage.setItem('lastOrder', JSON.stringify(orderData));
+        clearCart();
+        router.push('/order-confirmation');
+      } else {
+        const data = await res.json();
+        alert(`❌ ${data.error || 'Помилка при оформленні замовлення'}`);
+      }
+    } catch (e) {
+      alert('❌ Помилка з\'єднання. Перевірте інтернет.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const getItemImage = (item: any) => {
     if (item.icon && typeof item.icon === 'string' && item.icon.startsWith('http')) {
       return { type: 'url', value: item.icon };
@@ -339,8 +389,6 @@ const handleCheckout = async () => {
 
   return (
     <div className="pt-32 pb-20 container-custom max-w-7xl mx-auto">
-      <Toast message={toastMessage} isVisible={showToast} onClose={() => setShowToast(false)} />
-
       <h1 className="text-3xl font-heading font-bold text-[#1a3c34] mb-8 flex items-center gap-3">
         <span>Кошик</span>
         <span className="text-sm bg-gray-200 text-gray-600 px-3 py-1 rounded-full">
@@ -380,7 +428,6 @@ const handleCheckout = async () => {
                     {imageInfo.type === 'emoji' ? (
                       <span className="text-5xl">{imageInfo.value}</span>
                     ) : imageInfo.type === 'url' ? (
-                      // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={imageInfo.value}
                         alt={item.title}
@@ -483,7 +530,6 @@ const handleCheckout = async () => {
               );
             })}
 
-            {/* Повідомлення про доставку для консультацій та волонтерських послуг */}
             {hasConsultationOrVolunteer && (
               <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-800">
                 <p className="font-medium">📌 Для замовлень консультацій та волонтерської допомоги</p>
@@ -543,10 +589,18 @@ const handleCheckout = async () => {
               <input
                 type="text"
                 value={orderForm.name}
-                onChange={(e) => setOrderForm({ ...orderForm, name: e.target.value })}
+                onChange={(e) => {
+                  setOrderForm({ ...orderForm, name: e.target.value });
+                  if (errors.name) setErrors({ ...errors, name: undefined });
+                }}
                 placeholder="Іван Петренко"
-                className="w-full p-3 bg-gray-50 rounded-xl border border-gray-200 focus:border-[#c9a84c] focus:ring-2 focus:ring-[#c9a84c]/30 outline-none transition text-sm"
+                className={`w-full p-3 bg-gray-50 rounded-xl border ${
+                  errors.name ? 'border-red-500 ring-2 ring-red-500/30' : 'border-gray-200'
+                } focus:border-[#c9a84c] focus:ring-2 focus:ring-[#c9a84c]/30 outline-none transition text-sm`}
               />
+              {errors.name && (
+                <p className="text-red-500 text-sm mt-1">{errors.name}</p>
+              )}
             </div>
 
             <div>
@@ -554,14 +608,22 @@ const handleCheckout = async () => {
               <input
                 type="tel"
                 value={orderForm.phone}
-                onChange={(e) => setOrderForm({ ...orderForm, phone: e.target.value })}
+                onChange={(e) => {
+                  setOrderForm({ ...orderForm, phone: e.target.value });
+                  if (errors.phone) setErrors({ ...errors, phone: undefined });
+                }}
                 placeholder="+38 098 0751707"
-                className="w-full p-3 bg-gray-50 rounded-xl border border-gray-200 focus:border-[#c9a84c] focus:ring-2 focus:ring-[#c9a84c]/30 outline-none transition text-sm"
+                className={`w-full p-3 bg-gray-50 rounded-xl border ${
+                  errors.phone ? 'border-red-500 ring-2 ring-red-500/30' : 'border-gray-200'
+                } focus:border-[#c9a84c] focus:ring-2 focus:ring-[#c9a84c]/30 outline-none transition text-sm`}
               />
+              {errors.phone && (
+                <p className="text-red-500 text-sm mt-1">{errors.phone}</p>
+              )}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email (необов'язково)</label>
               <input
                 type="email"
                 value={orderForm.email}
@@ -586,8 +648,24 @@ const handleCheckout = async () => {
               <label className="block text-sm font-medium text-gray-700 mb-2">Доставка</label>
               <DeliverySelector
                 value={delivery}
-                onChange={(val) => setDelivery(val)}
+                onChange={(val) => {
+                  setDelivery(val);
+                  // Очищаємо помилки при зміні
+                  if (errors.city || errors.warehouse) {
+                    setErrors({ ...errors, city: undefined, warehouse: undefined });
+                  }
+                }}
               />
+              {delivery.deliveryType !== 'pickup' && (
+                <div className="mt-2">
+                  {errors.city && (
+                    <p className="text-red-500 text-sm mt-1">{errors.city}</p>
+                  )}
+                  {errors.warehouse && (
+                    <p className="text-red-500 text-sm mt-1">{errors.warehouse}</p>
+                  )}
+                </div>
+              )}
             </div>
 
             <button

@@ -19,12 +19,13 @@ export default function ServicesPage() {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: '-50px' });
   const addItem = useCartStore((state) => state.addItem);
+
   const [categories, setCategories] = useState<string[]>(['Всі']);
 
   useEffect(() => {
     async function fetchServices() {
       try {
-        const res = await fetch('/api/admin/content', { cache: 'no-store' });
+        const res = await fetch('/api/admin/content');
         if (!res.ok) throw new Error('Failed to fetch');
         const data = await res.json();
         const serviceItem = data.find((item: any) => item.key === 'services');
@@ -171,7 +172,6 @@ export default function ServicesPage() {
   };
 
   const openServiceModal = (service: any) => {
-    console.log('Відкриваємо модалку для:', service.title);
     setSelectedService(service);
     const initialValues: Record<string, any> = {};
     if (service.calculatorFields) {
@@ -197,8 +197,7 @@ export default function ServicesPage() {
   }
 
   return (
-    <div ref={ref} className="pt-32 pb-20 container-custom max-w-6xl mx-auto">
-      {/* Toast */}
+<div ref={ref} className="pt-32 pb-20 container-custom max-w-6xl mx-auto bg-white">      {/* Toast */}
       <AnimatePresence>
         {showToast && (
           <motion.div
@@ -223,18 +222,26 @@ export default function ServicesPage() {
       </AnimatePresence>
 
       {/* Заголовок */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={isInView ? { opacity: 1, y: 0 } : {}}
-        transition={{ duration: 0.6 }}
-        className="text-center mb-12"
-      >
-        <h1 className="text-[#1a3c34] font-heading text-4xl md:text-5xl font-bold">Наші послуги</h1>
-        <p className="text-gray-500 text-lg max-w-2xl mx-auto mt-2">Професійний 3D-друк, дизайн, моделювання та багато іншого</p>
-        <div className="mt-4 inline-block bg-gray-100 px-6 py-2 rounded-full text-sm text-gray-700 border border-gray-200">📐 Макс. розмір моделі: 25,6 × 25,6 × 25,6 см</div>
-      </motion.div>
+      {/* Заголовок */}
+<motion.div
+  initial={{ opacity: 0, y: 20 }}
+  whileInView={{ opacity: 1, y: 0 }}
+  viewport={{ once: true, margin: '-50px' }}
+  transition={{ duration: 0.6 }}
+  className="text-center mb-12"
+>
+  <h1 className="text-4xl md:text-5xl font-heading font-bold text-black">
+    Наші послуги
+  </h1>
+  <p className="text-lg text-gray-800 max-w-2xl mx-auto mt-2">
+    Оберіть послугу та замовте 3D-друк
+  </p>
+  <div className="mt-4 inline-block bg-gray-100 px-6 py-2 rounded-full text-sm text-gray-700 border border-gray-200">
+    📐 Макс. розмір моделі: 25,6 × 25,6 × 25,6 см
+  </div>
+</motion.div>
 
-      {/* Фільтри */}
+      {/* Фільтри категорій */}
       {categories.length > 1 && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -260,7 +267,7 @@ export default function ServicesPage() {
         </motion.div>
       )}
 
-      {/* Список карток */}
+      {/* Картки послуг */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
         {filtered
           .filter((s: any) => !s.hidden)
@@ -277,6 +284,7 @@ export default function ServicesPage() {
                 className="h-0.5 w-full transition-all duration-300 group-hover:h-1"
                 style={{ backgroundColor: service.categoryColor || '#c9a84c' }}
               />
+
               <div className="p-5 flex-1 flex flex-col">
                 <div className="flex items-start gap-3">
                   <div className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center text-3xl flex-shrink-0 group-hover:bg-[#c9a84c]/5 transition">
@@ -291,10 +299,14 @@ export default function ServicesPage() {
                         {service.category || 'Послуга'}
                       </span>
                       {service.hasCalculator && (
-                        <span className="text-[10px] text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">🧮</span>
+                        <span className="text-[10px] text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
+                          🧮
+                        </span>
                       )}
                       {service.hasFileUpload !== false && (
-                        <span className="text-[10px] text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-100">📎</span>
+                        <span className="text-[10px] text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-100">
+                          📎
+                        </span>
                       )}
                     </div>
                     <h3 className="text-base font-bold text-[#1a3c34] mt-1.5 leading-snug group-hover:text-[#c9a84c] transition-colors">
@@ -307,21 +319,46 @@ export default function ServicesPage() {
                 <div className="mt-auto pt-4 border-t border-gray-100">
                   <div className="mb-3">
                     <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider block">Ціна</span>
-                    <span className="text-xl font-bold text-[#1a3c34] tracking-tight">{service.price || 'Договірна'}</span>
+                    <span className="text-xl font-bold text-[#1a3c34] tracking-tight">
+                      {service.price || 'Договірна'}
+                    </span>
                   </div>
+
+                  {/* Блок кнопок */}
                   <div className="flex gap-2">
-                    <button
-                      onClick={() => openServiceModal(service)}
-                      className="flex-1 px-3 py-2 text-xs font-medium rounded-lg border border-gray-200 text-gray-500 hover:border-[#c9a84c] hover:text-[#c9a84c] hover:bg-[#c9a84c]/5 transition-all duration-200"
-                    >
-                      Детальніше
-                    </button>
-                    <button
-                      onClick={() => openServiceModal(service)}
-                      className="flex-1 px-4 py-2 text-xs font-semibold rounded-lg bg-[#1a3c34] text-white hover:bg-[#2d5a4b] transition-all duration-200 shadow-sm hover:shadow-md flex items-center justify-center gap-1"
-                    >
-                      <span>🛒</span> {service.priceValue > 0 ? 'Купити' : 'Замовити'}
-                    </button>
+                    {service.id === 1 ? (
+                      // Для "3D-друк моделей" – тільки кнопка "Замовити" на всю ширину
+                      <button
+                        onClick={() => window.location.href = '/order'}
+                        className="w-full px-4 py-2 text-xs font-semibold rounded-lg bg-[#1a3c34] text-white hover:bg-[#2d5a4b] transition-all duration-200 shadow-sm hover:shadow-md flex items-center justify-center gap-1"
+                      >
+                        <span>📋</span> Замовити
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => openServiceModal(service)}
+                          className="flex-1 px-3 py-2 text-xs font-medium rounded-lg border border-gray-200 text-gray-500 hover:border-[#c9a84c] hover:text-[#c9a84c] hover:bg-[#c9a84c]/5 transition-all duration-200"
+                        >
+                          Детальніше
+                        </button>
+                        {service.priceValue > 0 ? (
+                          <button
+                            onClick={() => openServiceModal(service)}
+                            className="flex-1 px-4 py-2 text-xs font-semibold rounded-lg bg-[#1a3c34] text-white hover:bg-[#2d5a4b] transition-all duration-200 shadow-sm hover:shadow-md flex items-center justify-center gap-1"
+                          >
+                            <span>🛒</span> Купити
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => openServiceModal(service)}
+                            className="flex-1 px-4 py-2 text-xs font-semibold rounded-lg bg-green-100 text-green-700 hover:bg-green-200 transition-all duration-200"
+                          >
+                            Замовити
+                          </button>
+                        )}
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -333,21 +370,21 @@ export default function ServicesPage() {
         <div className="text-center py-12 text-gray-400">Немає послуг у цій категорії</div>
       )}
 
-      {/* Кнопка "Зв'язатися" */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={isInView ? { opacity: 1, y: 0 } : {}}
-        transition={{ duration: 0.5, delay: 0.3 }}
-        className="mt-12 text-center"
-      >
-        <p className="text-gray-500 text-sm mb-4">Не знайшли потрібну послугу?</p>
-        <button
-          onClick={() => window.location.href = '/contacts'}
-          className="px-6 py-2.5 rounded-full border-2 border-[#c9a84c] text-[#c9a84c] text-sm font-medium hover:bg-[#c9a84c] hover:text-white transition-all duration-300"
-        >
-          Зв'язатися з нами
-        </button>
-      </motion.div>
+  initial={{ opacity: 0, y: 20 }}
+  whileInView={{ opacity: 1, y: 0 }}
+  viewport={{ once: true, margin: '-50px' }}
+  transition={{ duration: 0.5, delay: 0.3 }}
+  className="mt-12 text-center"
+>
+  <p className="text-gray-700 text-sm mb-4">Не знайшли потрібну послугу?</p>
+  <button
+    onClick={() => window.location.href = '/contacts'}
+    className="px-6 py-2.5 rounded-full border-2 border-[#c9a84c] text-[#c9a84c] text-sm font-medium hover:bg-[#c9a84c] hover:text-white transition-all duration-300"
+  >
+    Зв'язатися з нами
+  </button>
+</motion.div>
 
       {/* ==================== МОДАЛЬНЕ ВІКНО ==================== */}
       <AnimatePresence>
@@ -402,7 +439,7 @@ export default function ServicesPage() {
               <div className="p-6">
                 <p className="text-gray-600 text-base mb-4">{selectedService.longDesc || selectedService.description}</p>
 
-                {/* Спеціальні блоки для 3D-друку моделей */}
+                {/* Спеціальний блок для "3D-друк моделей" (id === 1) */}
                 {selectedService.id === 1 && (
                   <div className="mb-4 space-y-3">
                     <div className="bg-gradient-to-r from-[#1a3c34] to-[#2d5a4b] rounded-xl p-5 text-white shadow-lg">
