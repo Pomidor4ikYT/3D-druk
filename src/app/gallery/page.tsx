@@ -1,6 +1,7 @@
 import { supabaseAdmin } from '@/lib/supabase/server';
 import Image from 'next/image';
 import Button from '@/components/ui/Button';
+import AddToCartButton from '@/components/ui/AddToCartButton';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -70,9 +71,17 @@ export default async function GalleryPage() {
                 </div>
 
                 <div className="absolute bottom-20 right-3 z-10 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
-                  <button className="px-4 py-2 rounded-full bg-[#c9a84c] text-[#1a3c34] font-bold hover:bg-[#b89a3e] transition-all duration-200 shadow-lg flex items-center gap-2 text-sm">
-                    🛒 Купити
-                  </button>
+                  <AddToCartButton
+                    item={{
+                      id: `gallery-${idx}`,
+                      title: img.title,
+                      price: img.price,
+                      discount: img.discount,
+                      originalPrice: img.originalPrice,
+                      category: img.category,
+                      image: img.src,
+                    }}
+                  />
                 </div>
               </div>
             );

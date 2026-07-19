@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase/client';
+import { supabaseAdmin } from '@/lib/supabase/server'; // ← зміна імпорту
 
 type Order = {
   id: string;
@@ -26,7 +26,7 @@ export default function AdminOrders() {
 
   const fetchOrders = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from('orders')
         .select('*')
         .order('created_at', { ascending: false });
@@ -42,7 +42,7 @@ export default function AdminOrders() {
 
   const updateStatus = async (id: string, status: Order['status']) => {
     try {
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('orders')
         .update({ status })
         .eq('id', id);
@@ -56,7 +56,7 @@ export default function AdminOrders() {
   const deleteOrder = async (id: string) => {
     if (!confirm('Ви впевнені, що хочете видалити це замовлення?')) return;
     try {
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('orders')
         .delete()
         .eq('id', id);
