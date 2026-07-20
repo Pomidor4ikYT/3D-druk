@@ -1,6 +1,5 @@
 'use client';
-import { useState, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Button from '@/components/ui/Button';
 import FileUpload from '@/components/forms/FileUpload';
@@ -8,54 +7,21 @@ import CalculatorModal from '@/components/order/CalculatorModal';
 import DeliverySelector from '@/components/order/DeliverySelector';
 import STLViewer from '@/components/order/STLViewer';
 
-const designPrices = [
-  { label: 'Концепція виробу', price: '500–2 000 грн' },
-  { label: 'Проста 3D-модель', price: '2 000–5 000 грн' },
-  { label: 'Авторський сувенір', price: '5 000–15 000 грн' },
-  { label: 'Художня модель', price: '15 000–40 000 грн' },
-  { label: 'Підготовка до кольорового друку AMS', price: '+20–40%' },
-  { label: 'Передача виключних авторських прав', price: '+50–200% до вартості моделі' },
-];
-
+// ==================== ЦІНИ МАТЕРІАЛІВ ====================
 const materialPrices: Record<string, number> = {
-  PLA: 5,
-  PETG: 10,
-  ABS: 5,
-  ASA: 12,
-  TPU: 8,
-  'PA (нейлон)': 20,
+  PLA: 6,
+  PETG: 7,
+  ABS: 7,
+  ASA: 8,
+  TPU: 10,
+  'PA (нейлон)': 15,
 };
 
-const infillFactor = 0.01;
-const perimeterFactor = 0.02;
-const layerHeightFactor = 0.005;
+// ==================== ДОЗВОЛЕНІ ФОРМАТИ ФАЙЛІВ ====================
+const ALLOWED_FILE_TYPES = ['stl', 'obj', '3mf', 'step', 'iges', 'stp'];
+const ALLOWED_FILE_EXTENSIONS = ALLOWED_FILE_TYPES.map(ext => `.${ext}`).join(',');
 
-const getRecommendedInfill = (data: any) => {
-  const volume = data.volume;
-  const dims = data.dimensions;
-  const maxDim = Math.max(dims.width, dims.height, dims.depth);
-  if (volume > 500) return 10;
-  if (volume > 100) return 20;
-  if (volume > 50) return 30;
-  if (maxDim < 3) return 40;
-  if (data.triangleCount > 200000) return 15;
-  return 20;
-};
-
-const getRecommendedPerimeters = (data: any) => {
-  const volume = data.volume;
-  if (volume > 500) return 3;
-  if (volume > 100) return 2;
-  return 2;
-};
-
-const getRecommendedLayerHeight = (data: any) => {
-  const triangleCount = data.triangleCount;
-  if (triangleCount > 150000) return 0.1;
-  if (triangleCount > 50000) return 0.15;
-  return 0.2;
-};
-
+// ==================== КОМПОНЕНТ ====================
 export default function OrderPage() {
   const router = useRouter();
   const [form, setForm] = useState({
@@ -71,89 +37,88 @@ export default function OrderPage() {
   const [status, setStatus] = useState('');
   const [calcOpen, setCalcOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showIndividualModal, setShowIndividualModal] = useState(false);
 
+  // ==================== ПАРАМЕТРИ ДРУКУ ====================
   const [material, setMaterial] = useState('PLA');
   const [weight, setWeight] = useState(50);
+  const [quantity, setQuantity] = useState(1);
   const [infill, setInfill] = useState(20);
   const [perimeters, setPerimeters] = useState(2);
   const [layerHeight, setLayerHeight] = useState(0.2);
 
   const [modelInfo, setModelInfo] = useState<any>(null);
-  const [autoDetected, setAutoDetected] = useState(false);
   const loadedRef = useRef(false);
 
-  // Стан помилок
+  // ==================== СТАН ПОМИЛОК ====================
   const [errors, setErrors] = useState<{
     name?: string;
     phone?: string;
     city?: string;
     warehouse?: string;
     file?: string;
+    weight?: string;
+    quantity?: string;
   }>({});
 
-  const basePrice = materialPrices[material] || 5;
-  const complexityFactor = 1 + (infill / 100) * infillFactor + perimeters * perimeterFactor + (0.2 / layerHeight) * layerHeightFactor;
-  const totalPrice = Math.round(basePrice * weight * complexityFactor * 100) / 100;
+  // ==================== РОЗРАХУНОК ЦІНИ ====================
+  const calculatePrice = () => {
+    const basePricePerGram = materialPrices[material] || 6;
+    const baseTotal = basePricePerGram * weight * quantity;
 
-  const handleModelLoaded = (data: any) => {
-    if (loadedRef.current) return;
-    loadedRef.current = true;
-    setModelInfo(data);
-    setAutoDetected(true);
-    const estimatedWeight = Math.round(data.volume * 1.24 * 10) / 10;
-    setWeight(Math.max(1, estimatedWeight || 50));
-    setInfill(getRecommendedInfill(data));
-    setPerimeters(getRecommendedPerimeters(data));
-    setLayerHeight(getRecommendedLayerHeight(data));
-    setStatus('✅ Параметри автоматично підібрано на основі моделі!');
-    setTimeout(() => setStatus(''), 5000);
+    const infillFactor = 1 + (infill / 100) * 0.01;
+    const perimeterFactor = 1 + (perimeters - 1) * 0.02;
+    const layerFactor = 1 + (0.2 / layerHeight - 1) * 0.005;
+
+    let price = baseTotal * infillFactor * perimeterFactor * layerFactor;
+
+    let discount = 0;
+    if (quantity >= 500) discount = 0.20;
+    else if (quantity >= 100) discount = 0.15;
+    else if (quantity >= 50) discount = 0.10;
+    else if (quantity >= 10) discount = 0.05;
+
+    const discountedPrice = price * (1 - discount);
+
+    return {
+      baseTotal,
+      priceWithParams: price,
+      discount,
+      discountedPrice,
+      finalPrice: Math.round(discountedPrice),
+      infillFactor,
+      perimeterFactor,
+      layerFactor,
+    };
   };
 
-  const handleFileSelect = (file: File | null) => {
-    setFile(file);
-    if (!file) {
-      setModelInfo(null);
-      setAutoDetected(false);
-      loadedRef.current = false;
-    }
-    if (errors.file) setErrors({ ...errors, file: undefined });
-  };
+  const priceData = calculatePrice();
 
+  // ==================== ВАЛІДАЦІЯ ====================
   const validateForm = () => {
-    const newErrors: { name?: string; phone?: string; city?: string; warehouse?: string; file?: string } = {};
-
-    if (!form.name.trim()) {
-      newErrors.name = 'Будь ласка, введіть ваше ім\'я';
-    }
-    if (!form.phone.trim()) {
-      newErrors.phone = 'Будь ласка, введіть номер телефону';
-    }
+    const newErrors: any = {};
+    if (!form.name.trim()) newErrors.name = "Будь ласка, введіть ваше ім'я";
+    if (!form.phone.trim()) newErrors.phone = "Будь ласка, введіть номер телефону";
     if (form.delivery !== 'pickup') {
-      if (!form.city.trim()) {
-        newErrors.city = 'Введіть місто доставки';
-      }
-      if (!form.warehouse.trim()) {
-        newErrors.warehouse = 'Введіть відділення доставки';
-      }
+      if (!form.city.trim()) newErrors.city = 'Введіть місто доставки';
+      if (!form.warehouse.trim()) newErrors.warehouse = 'Введіть відділення доставки';
     }
-    if (!file) {
-      newErrors.file = 'Будь ласка, завантажте файл моделі або зображення';
-    }
+    if (!file) newErrors.file = 'Будь ласка, завантажте файл моделі (STL, OBJ, 3MF)';
+    if (weight <= 0) newErrors.weight = 'Вага має бути більше 0';
+    if (quantity < 1) newErrors.quantity = 'Кількість має бути не менше 1';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
+  // ==================== ВІДПРАВЛЕННЯ ====================
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!validateForm()) {
-      const firstError = document.querySelector('.border-red-500');
-      if (firstError) {
-        firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        (firstError as HTMLElement).focus();
-      }
-      return;
+    // Валідація
+    const isValid = validateForm();
+    if (!isValid) {
+      return; // Показуємо помилки під полями
     }
 
     setIsSubmitting(true);
@@ -163,7 +128,6 @@ export default function OrderPage() {
       let fileUrl = '';
       let fileName = '';
 
-      // Завантажуємо файл, якщо він є
       if (file) {
         const formData = new FormData();
         formData.append('file', file);
@@ -183,7 +147,6 @@ export default function OrderPage() {
         fileName = uploadData.fileName;
       }
 
-      // Відправляємо замовлення з URL файлу
       const res = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -204,15 +167,16 @@ export default function OrderPage() {
               title: '3D-друк на замовлення',
               material,
               weight,
+              quantity,
               infill,
               perimeters,
               layerHeight,
               file: fileUrl || file?.name || '',
               fileName: fileName || file?.name || '',
-              totalPrice: totalPrice,
+              totalPrice: priceData.finalPrice,
             },
           ],
-          total: totalPrice,
+          total: priceData.finalPrice,
           source: 'form',
         }),
       });
@@ -237,16 +201,16 @@ export default function OrderPage() {
               title: '3D-друк на замовлення',
               material,
               weight,
+              quantity,
               infill,
               perimeters,
               layerHeight,
               file: fileUrl || file?.name || '',
               fileName: fileName || file?.name || '',
-              price: totalPrice,
-              quantity: 1,
+              price: priceData.finalPrice,
             },
           ],
-          total: totalPrice,
+          total: priceData.finalPrice,
           created_at: new Date().toISOString(),
         };
         sessionStorage.setItem('lastOrder', JSON.stringify(orderData));
@@ -254,7 +218,6 @@ export default function OrderPage() {
         setForm({ name: '', phone: '', email: '', delivery: 'nova', city: '', warehouse: '', description: '' });
         setFile(null);
         setModelInfo(null);
-        setAutoDetected(false);
         loadedRef.current = false;
         router.push('/order-confirmation');
       } else {
@@ -267,6 +230,51 @@ export default function OrderPage() {
       setIsSubmitting(false);
     }
   };
+
+  // ==================== ОБРОБКА ФАЙЛУ ====================
+  const handleFileSelect = (file: File | null) => {
+    setFile(file);
+    if (!file) {
+      setModelInfo(null);
+      loadedRef.current = false;
+    }
+    if (errors.file) setErrors(prev => ({ ...prev, file: undefined }));
+  };
+
+  const handleModelLoaded = (data: any) => {
+    if (loadedRef.current) return;
+    loadedRef.current = true;
+    setModelInfo(data);
+  };
+
+  // Автоматичне очищення помилок
+  useEffect(() => {
+    if (form.name.trim() && errors.name) setErrors(prev => ({ ...prev, name: undefined }));
+  }, [form.name]);
+
+  useEffect(() => {
+    if (form.phone.trim() && errors.phone) setErrors(prev => ({ ...prev, phone: undefined }));
+  }, [form.phone]);
+
+  useEffect(() => {
+    if (form.city.trim() && errors.city) setErrors(prev => ({ ...prev, city: undefined }));
+  }, [form.city]);
+
+  useEffect(() => {
+    if (form.warehouse.trim() && errors.warehouse) setErrors(prev => ({ ...prev, warehouse: undefined }));
+  }, [form.warehouse]);
+
+  useEffect(() => {
+    if (weight > 0 && errors.weight) setErrors(prev => ({ ...prev, weight: undefined }));
+  }, [weight]);
+
+  useEffect(() => {
+    if (quantity >= 1 && errors.quantity) setErrors(prev => ({ ...prev, quantity: undefined }));
+  }, [quantity]);
+
+  useEffect(() => {
+    if (file) setErrors(prev => ({ ...prev, file: undefined }));
+  }, [file]);
 
   return (
     <div className="pt-32 pb-20 container-custom max-w-4xl mx-auto">
@@ -283,17 +291,18 @@ export default function OrderPage() {
 
       <div className="bg-white p-8 rounded-3xl shadow-xl border border-gray-100">
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* ===== ОСОБИСТІ ДАНІ ===== */}
           <div className="grid md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Ваше ім’я *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Ваше ім’я <span className="text-red-500">*</span>
+              </label>
               <input
                 type="text"
+                name="name"
                 placeholder="Іван Петренко"
                 value={form.name}
-                onChange={(e) => {
-                  setForm({ ...form, name: e.target.value });
-                  if (errors.name) setErrors({ ...errors, name: undefined });
-                }}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
                 className={`w-full p-3 bg-gray-50 rounded-xl border ${
                   errors.name ? 'border-red-500 ring-2 ring-red-500/30' : 'border-gray-200'
                 } focus:border-[#c9a84c] focus:ring-2 focus:ring-[#c9a84c]/30 outline-none transition`}
@@ -301,15 +310,15 @@ export default function OrderPage() {
               {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Телефон *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Телефон <span className="text-red-500">*</span>
+              </label>
               <input
                 type="tel"
+                name="phone"
                 placeholder="+38 098 0751707"
                 value={form.phone}
-                onChange={(e) => {
-                  setForm({ ...form, phone: e.target.value });
-                  if (errors.phone) setErrors({ ...errors, phone: undefined });
-                }}
+                onChange={(e) => setForm({ ...form, phone: e.target.value })}
                 className={`w-full p-3 bg-gray-50 rounded-xl border ${
                   errors.phone ? 'border-red-500 ring-2 ring-red-500/30' : 'border-gray-200'
                 } focus:border-[#c9a84c] focus:ring-2 focus:ring-[#c9a84c]/30 outline-none transition`}
@@ -329,6 +338,7 @@ export default function OrderPage() {
             />
           </div>
 
+          {/* ===== ДОСТАВКА ===== */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Спосіб доставки</label>
             <DeliverySelector
@@ -345,7 +355,7 @@ export default function OrderPage() {
                   delivery: val.deliveryType,
                 });
                 if (errors.city || errors.warehouse) {
-                  setErrors({ ...errors, city: undefined, warehouse: undefined });
+                  setErrors(prev => ({ ...prev, city: undefined, warehouse: undefined }));
                 }
               }}
             />
@@ -357,6 +367,7 @@ export default function OrderPage() {
             )}
           </div>
 
+          {/* ===== ОПИС ЗАМОВЛЕННЯ ===== */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Опис замовлення</label>
             <textarea
@@ -368,13 +379,10 @@ export default function OrderPage() {
             />
           </div>
 
+          {/* ===== ПАРАМЕТРИ ДРУКУ ===== */}
           <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 space-y-4">
-            <h4 className="font-semibold text-[#1a3c34] flex items-center gap-2">
-              Параметри друку
-              {autoDetected && (
-                <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">🎯 Авто</span>
-              )}
-            </h4>
+            <h4 className="font-semibold text-[#1a3c34] flex items-center gap-2">🧮 Параметри друку</h4>
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700">Матеріал</label>
@@ -388,28 +396,46 @@ export default function OrderPage() {
                   ))}
                 </select>
               </div>
+
               <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Вага (г)
-                  {autoDetected && <span className="text-xs text-green-600 ml-1">*</span>}
-                </label>
+                <label className="block text-sm font-medium text-gray-700">Вага моделі (г) *</label>
                 <input
                   type="number"
+                  name="weight"
                   min="1"
                   step="0.1"
                   value={weight}
                   onChange={(e) => setWeight(parseFloat(e.target.value) || 0)}
-                  className="w-full p-2 bg-white rounded-lg border border-gray-200 focus:border-[#c9a84c] focus:ring-2 focus:ring-[#c9a84c]/30 outline-none transition"
+                  className={`w-full p-2 bg-white rounded-lg border ${
+                    errors.weight ? 'border-red-500 ring-2 ring-red-500/30' : 'border-gray-200'
+                  } focus:border-[#c9a84c] focus:ring-2 focus:ring-[#c9a84c]/30 outline-none transition`}
                 />
-                {autoDetected && modelInfo && (
-                  <p className="text-xs text-gray-400 mt-1">Оцінено з моделі: ~{(modelInfo.volume * 1.24).toFixed(1)} г</p>
+                {errors.weight && <p className="text-red-500 text-sm mt-1">{errors.weight}</p>}
+                {modelInfo && (
+                  <p className="text-xs text-gray-400 mt-1">
+                    Об'єм: {modelInfo.volume?.toFixed(2)} см³ (прибл. вага: {(modelInfo.volume * 1.24).toFixed(1)} г)
+                  </p>
                 )}
               </div>
+
               <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Заповнення (%)
-                  {autoDetected && <span className="text-xs text-green-600 ml-1">*</span>}
-                </label>
+                <label className="block text-sm font-medium text-gray-700">Кількість</label>
+                <input
+                  type="number"
+                  name="quantity"
+                  min="1"
+                  step="1"
+                  value={quantity}
+                  onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                  className={`w-full p-2 bg-white rounded-lg border ${
+                    errors.quantity ? 'border-red-500 ring-2 ring-red-500/30' : 'border-gray-200'
+                  } focus:border-[#c9a84c] focus:ring-2 focus:ring-[#c9a84c]/30 outline-none transition`}
+                />
+                {errors.quantity && <p className="text-red-500 text-sm mt-1">{errors.quantity}</p>}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Заповнення (%)</label>
                 <input
                   type="range"
                   min="0"
@@ -421,16 +447,12 @@ export default function OrderPage() {
                 />
                 <div className="flex justify-between text-xs text-gray-500">
                   <span>{infill}%</span>
-                  {autoDetected && modelInfo && (
-                    <span className="text-green-600">рекомендовано: {getRecommendedInfill(modelInfo)}%</span>
-                  )}
+                  <span>рекомендовано: 20%</span>
                 </div>
               </div>
+
               <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Периметри
-                  {autoDetected && <span className="text-xs text-green-600 ml-1">*</span>}
-                </label>
+                <label className="block text-sm font-medium text-gray-700">Периметри</label>
                 <input
                   type="range"
                   min="1"
@@ -442,16 +464,12 @@ export default function OrderPage() {
                 />
                 <div className="flex justify-between text-xs text-gray-500">
                   <span>{perimeters}</span>
-                  {autoDetected && modelInfo && (
-                    <span className="text-green-600">рекомендовано: {getRecommendedPerimeters(modelInfo)}</span>
-                  )}
+                  <span>рекомендовано: 2</span>
                 </div>
               </div>
-              <div className="col-span-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Висота шару (мм)
-                  {autoDetected && <span className="text-xs text-green-600 ml-1">*</span>}
-                </label>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Висота шару (мм)</label>
                 <select
                   value={layerHeight}
                   onChange={(e) => setLayerHeight(parseFloat(e.target.value))}
@@ -463,23 +481,104 @@ export default function OrderPage() {
                   <option value={0.2}>0.2 (стандарт)</option>
                   <option value={0.3}>0.3 (швидкий)</option>
                 </select>
-                {autoDetected && modelInfo && (
-                  <p className="text-xs text-green-600 mt-1">рекомендовано: {getRecommendedLayerHeight(modelInfo)} мм</p>
-                )}
               </div>
             </div>
-            <div className="bg-green-50 p-3 rounded-lg border border-green-200 text-center">
+
+            {/* ===== БЛОК ЗНИЖОК ===== */}
+            <div className="bg-gradient-to-r from-[#1a3c34] to-[#2d5a4b] rounded-xl p-4 text-white shadow-lg w-full">
+              <h5 className="font-bold text-[#c9a84c] flex items-center gap-2 mb-2">
+                <span className="text-xl">🎯</span>
+                <span>Для постійних клієнтів</span>
+              </h5>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+                <div className="bg-white/10 backdrop-blur-sm rounded-lg p-2 text-center border border-white/10">
+                  <div className="text-xl font-bold text-[#7ec8a3]">10+</div>
+                  <div className="text-xs text-white/70">виробів</div>
+                  <div className="text-base font-bold text-[#c9a84c]">-5%</div>
+                </div>
+                <div className="bg-white/10 backdrop-blur-sm rounded-lg p-2 text-center border border-white/10">
+                  <div className="text-xl font-bold text-[#7ec8a3]">50+</div>
+                  <div className="text-xs text-white/70">виробів</div>
+                  <div className="text-base font-bold text-[#c9a84c]">-10%</div>
+                </div>
+                <div className="bg-white/10 backdrop-blur-sm rounded-lg p-2 text-center border border-white/10">
+                  <div className="text-xl font-bold text-[#7ec8a3]">100+</div>
+                  <div className="text-xs text-white/70">виробів</div>
+                  <div className="text-base font-bold text-[#c9a84c]">-15%</div>
+                </div>
+                <div className="bg-white/10 backdrop-blur-sm rounded-lg p-2 text-center border border-white/10 border-dashed">
+                  <div className="text-xl font-bold text-[#c9a84c]">500+</div>
+                  <div className="text-xs text-white/70">виробів</div>
+                  <button
+                    type="button"
+                    onClick={() => setShowIndividualModal(true)}
+                    className="text-xs font-semibold text-[#7ec8a3] hover:underline cursor-pointer"
+                  >
+                    індивідуально →
+                  </button>
+                </div>
+              </div>
+              {quantity >= 500 && (
+                <div className="mt-2 text-xs text-[#c9a84c] font-semibold animate-pulse">
+                  🎉 Для 500+ виробів – індивідуальний договір.{' '}
+                  <button type="button" onClick={() => setShowIndividualModal(true)} className="underline">
+                    Деталі
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* ===== РОЗРАХУНОК ===== */}
+            <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4 text-center">
               <p className="text-sm text-gray-600">Орієнтовна вартість:</p>
-              <p className="text-2xl font-bold text-[#1a3c34]">{totalPrice.toFixed(2)} ₴</p>
-              <p className="text-xs text-gray-500">* Розрахунок приблизний, остаточна ціна після узгодження</p>
+              <p className="text-3xl font-bold text-[#1a3c34]">{priceData.finalPrice} ₴</p>
+              <div className="flex flex-wrap justify-center gap-4 text-xs text-gray-500 mt-2">
+                <span>База: {priceData.baseTotal.toFixed(0)} ₴</span>
+                <span>Заповнення: {(priceData.infillFactor * 100 - 100).toFixed(0)}%</span>
+                <span>Периметри: {(priceData.perimeterFactor * 100 - 100).toFixed(0)}%</span>
+                {priceData.discount > 0 && (
+                  <span className="text-green-600 font-medium">Знижка: {(priceData.discount * 100).toFixed(0)}%</span>
+                )}
+              </div>
+              {priceData.discount > 0 && <p className="text-xs text-green-700 mt-1">✅ Застосовано знижку за кількість</p>}
+              <p className="text-xs text-gray-400 mt-1">* Розрахунок приблизний, остаточна ціна після узгодження</p>
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Файл моделі або фото *</label>
-            <FileUpload key={file ? 'has-file' : 'no-file'} onFileSelect={handleFileSelect} />
-            {file && <p className="text-[#1a3c34] text-sm mt-2">✅ Вибрано: {file.name}</p>}
+          {/* ===== ФАЙЛ ===== */}
+          <div className="file-upload-container">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Файл моделі <span className="text-red-500">*</span>
+            </label>
+            <FileUpload
+              key={file ? 'has-file' : 'no-file'}
+              onFileSelect={handleFileSelect}
+              accept={ALLOWED_FILE_EXTENSIONS}
+              allowedExtensions={ALLOWED_FILE_TYPES}
+              maxSize={50 * 1024 * 1024}
+              label="Перетягніть 3D-модель або клікніть для вибору"
+              required={false} // ВИПРАВЛЕНО: false, щоб уникнути помилки фокусування
+            />
+            {file && (
+              <div className="flex items-center gap-2 mt-2">
+                <p className="text-[#1a3c34] text-sm">✅ Вибрано: {file.name}</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFile(null);
+                    setModelInfo(null);
+                    loadedRef.current = false;
+                  }}
+                  className="text-red-500 hover:text-red-700 text-sm font-medium transition"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
             {errors.file && <p className="text-red-500 text-sm mt-1">{errors.file}</p>}
+            <p className="text-xs text-gray-400 mt-1">
+              Дозволені формати: STL, OBJ, 3MF, STEP, IGES, STP. Макс. розмір: 50 МБ
+            </p>
           </div>
 
           {file && (
@@ -488,14 +587,18 @@ export default function OrderPage() {
               <STLViewer file={file} onModelLoaded={handleModelLoaded} />
               {modelInfo && (
                 <div className="mt-2 grid grid-cols-3 gap-2 text-xs text-gray-500">
-                  <div>Об'єм: {modelInfo.volume.toFixed(2)} см³</div>
-                  <div>Розміри: {modelInfo.dimensions.width.toFixed(1)}×{modelInfo.dimensions.height.toFixed(1)}×{modelInfo.dimensions.depth.toFixed(1)} см</div>
-                  <div>Трикутників: {modelInfo.triangleCount.toLocaleString()}</div>
+                  <div>Об'єм: {modelInfo.volume?.toFixed(2)} см³</div>
+                  <div>Розміри: {modelInfo.dimensions?.width?.toFixed(1)}×{modelInfo.dimensions?.height?.toFixed(1)}×{modelInfo.dimensions?.depth?.toFixed(1)} см</div>
+                  <div>Трикутників: {modelInfo.triangleCount?.toLocaleString()}</div>
                 </div>
               )}
+              <p className="text-xs text-gray-400 mt-1">
+                * Об'єм, розміри та кількість трикутників не впливають на ціну – це довідкова інформація.
+              </p>
             </div>
           )}
 
+          {/* ===== УМОВИ ===== */}
           <div className="bg-red-50 p-4 rounded-xl border border-red-200 text-sm text-red-700">
             ⚠️ Повернення браку можливе при наявності відеофіксації несправності при розпаковці.
           </div>
@@ -515,6 +618,51 @@ export default function OrderPage() {
           )}
         </form>
       </div>
+
+      {/* ===== МОДАЛКА ===== */}
+      {showIndividualModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          onClick={() => setShowIndividualModal(false)}
+        >
+          <div
+            className="bg-white rounded-3xl max-w-md w-full shadow-2xl p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-[#1a3c34] flex items-center gap-2">
+                <span className="text-2xl">📐</span>
+                Індивідуальні розробки
+              </h3>
+              <button
+                onClick={() => setShowIndividualModal(false)}
+                className="text-gray-400 hover:text-gray-700 text-2xl transition"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="space-y-3">
+              <p className="text-sm text-gray-700">
+                <span className="font-semibold">Формула розрахунку:</span>
+              </p>
+              <p className="font-mono text-sm bg-gray-50 px-3 py-2 rounded-lg border border-gray-200">
+                (матеріал × вага × кількість) × заповнення × периметри × висота шару
+              </p>
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-gray-700">
+                <p className="font-semibold">📌 Для 500+ виробів:</p>
+                <p>Застосовується індивідуальний договір з персоналізованими умовами.</p>
+                <p className="text-xs text-gray-500 mt-1">Зв'яжіться з нами для детального розрахунку.</p>
+              </div>
+              <button
+                onClick={() => setShowIndividualModal(false)}
+                className="w-full py-2 bg-[#1a3c34] text-white rounded-lg font-medium hover:bg-[#2d5a4b] transition"
+              >
+                Зрозуміло
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <CalculatorModal isOpen={calcOpen} onClose={() => setCalcOpen(false)} />
     </div>

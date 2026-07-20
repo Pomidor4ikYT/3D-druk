@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { motion, useInView, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useCartStore } from '@/store/cartStore';
 import FileUpload from '@/components/forms/FileUpload';
 
@@ -34,8 +34,6 @@ export default function ServicesPage() {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: '-50px' });
   const addItem = useCartStore((state) => state.addItem);
 
   const [categories, setCategories] = useState<string[]>(['Всі']);
@@ -115,7 +113,6 @@ export default function ServicesPage() {
       const formData = new FormData();
       formData.append('file', file);
 
-      // Використовуємо XMLHttpRequest для відстеження прогресу
       return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhr.open('POST', '/api/upload');
@@ -160,7 +157,6 @@ export default function ServicesPage() {
   };
 
   const addToCartWithOptions = async (service: any) => {
-    // Якщо послуга має завантаження файлів і файл вибрано – завантажуємо
     let fileUrl = '';
     if (service.hasFileUpload !== false && uploadedFile) {
       try {
@@ -281,7 +277,7 @@ export default function ServicesPage() {
   }
 
   return (
-    <div ref={ref} className="pt-32 pb-20 container-custom max-w-6xl mx-auto bg-white">
+    <div className="pt-32 pb-20 container-custom max-w-6xl mx-auto bg-white">
       {/* Toast */}
       <AnimatePresence>
         {showToast && (
@@ -306,34 +302,22 @@ export default function ServicesPage() {
         )}
       </AnimatePresence>
 
-      {/* Заголовок */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={isInView ? { opacity: 1, y: 0 } : {}}
-        transition={{ duration: 0.6 }}
-        className="text-center mb-12"
-      >
+      {/* ===== ЗАГОЛОВОК – завжди видимий ===== */}
+      <div className="text-center mb-12">
         <h1 className="text-4xl md:text-5xl font-heading font-bold text-black">Наші послуги</h1>
         <p className="text-lg text-gray-800 max-w-2xl mx-auto mt-2">Оберіть послугу та замовте 3D-друк</p>
         <div className="mt-4 inline-block bg-gray-100 px-6 py-2 rounded-full text-sm text-gray-700 border border-gray-200">
           📐 Макс. розмір моделі: 25,6 × 25,6 × 25,6 см
         </div>
-      </motion.div>
+      </div>
 
-      {/* Фільтри категорій */}
+      {/* ===== ФІЛЬТРИ – завжди видимі ===== */}
       {categories.length > 1 && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="flex flex-wrap justify-center gap-2.5 mb-12"
-        >
+        <div className="flex flex-wrap justify-center gap-2.5 mb-12">
           {categories.map((cat) => (
-            <motion.button
+            <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
-              whileHover={{ scale: 1.05, y: -2 }}
-              whileTap={{ scale: 0.95 }}
               className={`px-5 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
                 selectedCategory === cat
                   ? 'bg-[#1a3c34] text-white shadow-md shadow-[#1a3c34]/20'
@@ -341,12 +325,12 @@ export default function ServicesPage() {
               }`}
             >
               {cat}
-            </motion.button>
+            </button>
           ))}
-        </motion.div>
+        </div>
       )}
 
-      {/* Картки послуг */}
+      {/* ===== КАРТКИ ПОСЛУГ ===== */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
         {filtered
           .filter((s: any) => !s.hidden)
@@ -447,12 +431,8 @@ export default function ServicesPage() {
         <div className="text-center py-12 text-gray-400">Немає послуг у цій категорії</div>
       )}
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={isInView ? { opacity: 1, y: 0 } : {}}
-        transition={{ duration: 0.5, delay: 0.3 }}
-        className="mt-12 text-center"
-      >
+      {/* ===== НИЖНЯ СЕКЦІЯ – завжди видима ===== */}
+      <div className="mt-12 text-center">
         <p className="text-gray-700 text-sm mb-4">Не знайшли потрібну послугу?</p>
         <button
           onClick={() => window.location.href = '/contacts'}
@@ -460,7 +440,7 @@ export default function ServicesPage() {
         >
           Зв'язатися з нами
         </button>
-      </motion.div>
+      </div>
 
       {/* ==================== МОДАЛЬНЕ ВІКНО ==================== */}
       <AnimatePresence>
