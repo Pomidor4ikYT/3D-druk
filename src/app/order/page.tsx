@@ -115,10 +115,9 @@ export default function OrderPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Валідація
     const isValid = validateForm();
     if (!isValid) {
-      return; // Показуємо помилки під полями
+      return;
     }
 
     setIsSubmitting(true);
@@ -557,7 +556,7 @@ export default function OrderPage() {
               allowedExtensions={ALLOWED_FILE_TYPES}
               maxSize={50 * 1024 * 1024}
               label="Перетягніть 3D-модель або клікніть для вибору"
-              required={false} // ВИПРАВЛЕНО: false, щоб уникнути помилки фокусування
+              required={false}
             />
             {file && (
               <div className="flex items-center gap-2 mt-2">
