@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Button from '@/components/ui/Button';
 import CalculatorModal from '@/components/order/CalculatorModal';
+import Link from 'next/link';
 
 // =========================
 // 1. Великі плаваючі фігури
@@ -265,14 +266,16 @@ export default function Hero({ data }: { data?: any }) {
             transition={{ duration: 0.8, type: 'spring', damping: 20 }}
             className="text-white"
           >
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="inline-block bg-white/10 backdrop-blur-sm px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider text-[#7ec8a3] border border-[#7ec8a3]/20 mb-4"
-            >
-              🚀 3D-друк нового покоління
-            </motion.div>
+<motion.div
+  initial={{ opacity: 0, y: 20 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ delay: 0.3 }}
+  className="inline-block bg-white/10 backdrop-blur-sm px-6 py-2 rounded-full text-sm font-bold uppercase tracking-wider text-[#7ec8a3] border border-[#7ec8a3]/20 mb-4"
+>
+  <Link href="/gallery" className="block w-full h-full">
+    🚀 3D-друк нового покоління
+  </Link>
+</motion.div>
 
             <h1 className="text-5xl md:text-7xl font-heading font-bold leading-tight mb-6">
               Втілюємо <br />

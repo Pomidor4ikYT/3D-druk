@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import DeliverySelector from '@/components/order/DeliverySelector';
 
-// Компонент модалки редагування
+// ==================== МОДАЛКА РЕДАГУВАННЯ ====================
 function EditModal({
   item,
   isOpen,
@@ -179,7 +179,7 @@ function EditModal({
   );
 }
 
-// Головний компонент
+// ==================== ГОЛОВНИЙ КОМПОНЕНТ ====================
 export default function CartPage() {
   const router = useRouter();
   const { items, removeItem, updateQuantity, clearCart, updateItem } = useCartStore();
@@ -203,6 +203,12 @@ export default function CartPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isClient, setIsClient] = useState(false);
 
+  // ===== ОПЛАТА (МАСИВ) =====
+  const [paymentConfirmed, setPaymentConfirmed] = useState(false);
+  const [paymentNumber, setPaymentNumber] = useState('');
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentDetails, setPaymentDetails] = useState<any[]>([]);
+
   const [editingItem, setEditingItem] = useState<any>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
@@ -213,11 +219,51 @@ export default function CartPage() {
     item.category === 'Консультації' || item.category === 'Соціальне'
   );
 
+  // ===== ЗАВАНТАЖЕННЯ РЕКВІЗИТІВ (МАСИВ) =====
+  const fetchPaymentDetails = async () => {
+    try {
+      const res = await fetch('/api/admin/content');
+      const items = await res.json();
+      const paymentItem = items.find((item: any) => item.key === 'payment_details');
+      if (paymentItem?.data) {
+        if (Array.isArray(paymentItem.data)) {
+          setPaymentDetails(paymentItem.data);
+        } else if (typeof paymentItem.data === 'object' && paymentItem.data !== null) {
+          setPaymentDetails([paymentItem.data]);
+        } else {
+          setPaymentDetails([]);
+        }
+      } else {
+        setPaymentDetails([
+          {
+            recipientName: 'ФОП Комарницький Юрій',
+            iban: 'UA123456789012345678901234567',
+            bankName: 'Монобанк',
+            paymentPurpose: 'Оплата за 3D-друк, замовлення №',
+            edrpou: '1234567890',
+          },
+        ]);
+      }
+    } catch (err) {
+      console.error('Помилка завантаження реквізитів', err);
+      setPaymentDetails([
+        {
+          recipientName: 'ФОП Комарницький Юрій',
+          iban: 'UA123456789012345678901234567',
+          bankName: 'Монобанк',
+          paymentPurpose: 'Оплата за 3D-друк, замовлення №',
+          edrpou: '1234567890',
+        },
+      ]);
+    }
+  };
+
   useEffect(() => {
     setIsClient(true);
+    fetchPaymentDetails();
   }, []);
 
-  // Функція валідації
+  // ===== ВАЛІДАЦІЯ =====
   const validateForm = () => {
     const newErrors: { name?: string; phone?: string; city?: string; warehouse?: string } = {};
 
@@ -234,6 +280,10 @@ export default function CartPage() {
       if (!delivery.warehouse.trim()) {
         newErrors.warehouse = 'Введіть відділення доставки';
       }
+    }
+    if (!paymentConfirmed) {
+      alert('Будь ласка, підтвердіть оплату перед оформленням замовлення');
+      return false;
     }
 
     setErrors(newErrors);
@@ -291,9 +341,7 @@ export default function CartPage() {
   };
 
   const handleCheckout = async () => {
-    // Валідація
     if (!validateForm()) {
-      // Прокрутка до першого поля з помилкою
       const firstError = document.querySelector('.border-red-500');
       if (firstError) {
         firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -329,6 +377,10 @@ export default function CartPage() {
           })),
           total: total,
           source: 'cart',
+          payment: {
+            confirmed: paymentConfirmed,
+            number: paymentNumber || '',
+          },
         }),
       });
 
@@ -650,7 +702,6 @@ export default function CartPage() {
                 value={delivery}
                 onChange={(val) => {
                   setDelivery(val);
-                  // Очищаємо помилки при зміні
                   if (errors.city || errors.warehouse) {
                     setErrors({ ...errors, city: undefined, warehouse: undefined });
                   }
@@ -668,16 +719,65 @@ export default function CartPage() {
               )}
             </div>
 
+            {/* ===== ОПЛАТА (МАСИВ) ===== */}
+            <div className="bg-gradient-to-r from-amber-50 to-amber-100 border-2 border-amber-300 rounded-xl p-4 space-y-3 shadow-md">
+              <div className="flex items-start gap-3">
+                <span className="text-3xl">💳</span>
+                <div>
+                  <h4 className="font-bold text-amber-900 text-lg">Оплата замовлення</h4>
+                  <p className="text-amber-800 text-sm">
+                    Підтвердіть оплату для завершення оформлення
+                  </p>
+                </div>
+              </div>
+
+              {/* СТИЛЬНА КНОПКА РЕКВІЗИТІВ */}
+              <button
+                type="button"
+                onClick={() => setShowPaymentModal(true)}
+                className="w-full py-3.5 rounded-xl font-bold text-white bg-gradient-to-r from-[#c9a84c] to-[#b89a3e] shadow-lg shadow-[#c9a84c]/40 hover:shadow-[#c9a84c]/60 hover:scale-[1.02] transition-all duration-200 text-lg flex items-center justify-center gap-3"
+              >
+                <span className="text-2xl">📋</span>
+                Показати реквізити для оплати
+              </button>
+
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="paymentConfirmCart"
+                  checked={paymentConfirmed}
+                  onChange={(e) => setPaymentConfirmed(e.target.checked)}
+                  className="w-5 h-5 text-[#c9a84c] focus:ring-[#c9a84c] border-gray-300 rounded"
+                />
+                <label htmlFor="paymentConfirmCart" className="text-sm font-medium text-gray-700">
+                  Я підтверджую оплату
+                </label>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Номер платежу (необов'язково)
+                </label>
+                <input
+                  type="text"
+                  value={paymentNumber}
+                  onChange={(e) => setPaymentNumber(e.target.value)}
+                  placeholder="Наприклад: 1234567890"
+                  className="w-full p-2 bg-gray-50 rounded-lg border border-gray-200 focus:border-[#c9a84c] focus:ring-2 focus:ring-[#c9a84c]/30 outline-none transition text-sm"
+                />
+              </div>
+            </div>
+
             <button
               onClick={handleCheckout}
-              disabled={isSubmitting}
+              disabled={isSubmitting || !paymentConfirmed}
               className={`w-full py-3.5 rounded-xl text-white font-bold text-base transition-all duration-300 shadow-lg ${
-                isSubmitting 
+                isSubmitting || !paymentConfirmed
                   ? 'bg-gray-400 cursor-not-allowed' 
                   : 'bg-[#1a3c34] hover:bg-[#2d5a4b] shadow-[#1a3c34]/30 hover:shadow-[#1a3c34]/50'
               }`}
             >
-              {isSubmitting ? 'Обробка...' : 'Оформити замовлення'}
+              {isSubmitting ? 'Обробка...' : paymentConfirmed ? 'Оформити замовлення' : 'Підтвердіть оплату'}
             </button>
 
             <p className="text-xs text-gray-400 text-center">
@@ -697,6 +797,71 @@ export default function CartPage() {
         }}
         onSave={handleSaveEdit}
       />
+
+{/* МОДАЛКА РЕКВІЗИТИ – 2 КОЛОНКИ */}
+{showPaymentModal && paymentDetails.length > 0 && (
+  <div
+    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+    onClick={() => setShowPaymentModal(false)}
+  >
+    <div
+      className="bg-white rounded-3xl max-w-4xl w-full shadow-2xl p-6 max-h-[90vh] overflow-y-auto"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="flex justify-between items-center mb-5">
+        <h3 className="text-2xl font-bold text-[#1a3c34] flex items-center gap-2">
+          <span className="text-2xl">💳</span> Реквізити для оплати
+        </h3>
+        <button onClick={() => setShowPaymentModal(false)} className="text-gray-400 hover:text-gray-700 text-2xl transition">
+          ✕
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-200 max-h-96 overflow-y-auto">
+        {paymentDetails.map((detail, idx) => (
+          <div key={idx} className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-sm font-bold text-[#c9a84c]">#{idx + 1}</span>
+              <span className="text-sm font-semibold text-gray-700">{detail.bankName}</span>
+            </div>
+            <div className="space-y-2 text-sm">
+              <div>
+                <p className="text-xs font-medium text-gray-500">Отримувач</p>
+                <p className="text-sm font-semibold text-gray-900 break-words">{detail.recipientName}</p>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-gray-500">IBAN</p>
+                <p className="text-sm font-mono font-bold text-[#1a3c34] break-all">{detail.iban}</p>
+              </div>
+              {detail.edrpou && (
+                <div>
+                  <p className="text-xs font-medium text-gray-500">ЄДРПОУ / РНОКПП</p>
+                  <p className="text-sm font-semibold text-gray-900">{detail.edrpou}</p>
+                </div>
+              )}
+              {detail.paymentPurpose && (
+                <div>
+                  <p className="text-xs font-medium text-gray-500">Призначення</p>
+                  <p className="text-sm font-semibold text-gray-900">{detail.paymentPurpose}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+        <div className="md:col-span-2 bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-800">
+          ⚠️ Після оплати вкажіть номер платежу в полі вище та підтвердіть оплату.
+        </div>
+      </div>
+
+      <button
+        onClick={() => setShowPaymentModal(false)}
+        className="mt-5 w-full py-3 bg-[#1a3c34] text-white rounded-xl font-bold text-base hover:bg-[#2d5a4b] transition"
+      >
+        Закрити
+      </button>
+    </div>
+  </div>
+)}
     </div>
   );
 }

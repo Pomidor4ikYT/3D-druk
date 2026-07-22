@@ -17,11 +17,9 @@ const materialPrices: Record<string, number> = {
   'PA (нейлон)': 15,
 };
 
-// ==================== ДОЗВОЛЕНІ ФОРМАТИ ФАЙЛІВ ====================
 const ALLOWED_FILE_TYPES = ['stl', 'obj', '3mf', 'step', 'iges', 'stp'];
 const ALLOWED_FILE_EXTENSIONS = ALLOWED_FILE_TYPES.map(ext => `.${ext}`).join(',');
 
-// ==================== КОМПОНЕНТ ====================
 export default function OrderPage() {
   const router = useRouter();
   const [form, setForm] = useState({
@@ -39,7 +37,13 @@ export default function OrderPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showIndividualModal, setShowIndividualModal] = useState(false);
 
-  // ==================== ПАРАМЕТРИ ДРУКУ ====================
+  // ===== ОПЛАТА (МАСИВ) =====
+  const [paymentConfirmed, setPaymentConfirmed] = useState(false);
+  const [paymentNumber, setPaymentNumber] = useState('');
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentDetails, setPaymentDetails] = useState<any[]>([]);
+
+  // ===== ПАРАМЕТРИ ДРУКУ =====
   const [material, setMaterial] = useState('PLA');
   const [weight, setWeight] = useState(50);
   const [quantity, setQuantity] = useState(1);
@@ -50,7 +54,6 @@ export default function OrderPage() {
   const [modelInfo, setModelInfo] = useState<any>(null);
   const loadedRef = useRef(false);
 
-  // ==================== СТАН ПОМИЛОК ====================
   const [errors, setErrors] = useState<{
     name?: string;
     phone?: string;
@@ -61,25 +64,20 @@ export default function OrderPage() {
     quantity?: string;
   }>({});
 
-  // ==================== РОЗРАХУНОК ЦІНИ ====================
+  // ===== РОЗРАХУНОК ЦІНИ =====
   const calculatePrice = () => {
     const basePricePerGram = materialPrices[material] || 6;
     const baseTotal = basePricePerGram * weight * quantity;
-
     const infillFactor = 1 + (infill / 100) * 0.01;
     const perimeterFactor = 1 + (perimeters - 1) * 0.02;
     const layerFactor = 1 + (0.2 / layerHeight - 1) * 0.005;
-
     let price = baseTotal * infillFactor * perimeterFactor * layerFactor;
-
     let discount = 0;
     if (quantity >= 500) discount = 0.20;
     else if (quantity >= 100) discount = 0.15;
     else if (quantity >= 50) discount = 0.10;
     else if (quantity >= 10) discount = 0.05;
-
     const discountedPrice = price * (1 - discount);
-
     return {
       baseTotal,
       priceWithParams: price,
@@ -94,7 +92,50 @@ export default function OrderPage() {
 
   const priceData = calculatePrice();
 
-  // ==================== ВАЛІДАЦІЯ ====================
+  // ===== ЗАВАНТАЖЕННЯ РЕКВІЗИТІВ (МАСИВ) =====
+  const fetchPaymentDetails = async () => {
+    try {
+      const res = await fetch('/api/admin/content');
+      const items = await res.json();
+      const paymentItem = items.find((item: any) => item.key === 'payment_details');
+      if (paymentItem?.data) {
+        if (Array.isArray(paymentItem.data)) {
+          setPaymentDetails(paymentItem.data);
+        } else if (typeof paymentItem.data === 'object' && paymentItem.data !== null) {
+          setPaymentDetails([paymentItem.data]);
+        } else {
+          setPaymentDetails([]);
+        }
+      } else {
+        setPaymentDetails([
+          {
+            recipientName: 'ФОП Комарницький Юрій',
+            iban: 'UA123456789012345678901234567',
+            bankName: 'Монобанк',
+            paymentPurpose: 'Оплата за 3D-друк, замовлення №',
+            edrpou: '1234567890',
+          },
+        ]);
+      }
+    } catch (err) {
+      console.error('Помилка завантаження реквізитів', err);
+      setPaymentDetails([
+        {
+          recipientName: 'ФОП Комарницький Юрій',
+          iban: 'UA123456789012345678901234567',
+          bankName: 'Монобанк',
+          paymentPurpose: 'Оплата за 3D-друк, замовлення №',
+          edrpou: '1234567890',
+        },
+      ]);
+    }
+  };
+
+  useEffect(() => {
+    fetchPaymentDetails();
+  }, []);
+
+  // ===== ВАЛІДАЦІЯ =====
   const validateForm = () => {
     const newErrors: any = {};
     if (!form.name.trim()) newErrors.name = "Будь ласка, введіть ваше ім'я";
@@ -106,19 +147,19 @@ export default function OrderPage() {
     if (!file) newErrors.file = 'Будь ласка, завантажте файл моделі (STL, OBJ, 3MF)';
     if (weight <= 0) newErrors.weight = 'Вага має бути більше 0';
     if (quantity < 1) newErrors.quantity = 'Кількість має бути не менше 1';
-
+    if (!paymentConfirmed) {
+      alert('Будь ласка, підтвердіть оплату перед надсиланням заявки');
+      return false;
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  // ==================== ВІДПРАВЛЕННЯ ====================
+  // ===== ВІДПРАВЛЕННЯ =====
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     const isValid = validateForm();
-    if (!isValid) {
-      return;
-    }
+    if (!isValid) return;
 
     setIsSubmitting(true);
     setStatus('Надсилання...');
@@ -126,21 +167,14 @@ export default function OrderPage() {
     try {
       let fileUrl = '';
       let fileName = '';
-
       if (file) {
         const formData = new FormData();
         formData.append('file', file);
-
-        const uploadRes = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData,
-        });
-
+        const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
         if (!uploadRes.ok) {
           const errData = await uploadRes.json();
           throw new Error(errData.error || 'Помилка завантаження файлу');
         }
-
         const uploadData = await uploadRes.json();
         fileUrl = uploadData.fileUrl;
         fileName = uploadData.fileName;
@@ -177,6 +211,10 @@ export default function OrderPage() {
           ],
           total: priceData.finalPrice,
           source: 'form',
+          payment: {
+            confirmed: paymentConfirmed,
+            number: paymentNumber || '',
+          },
         }),
       });
 
@@ -218,6 +256,8 @@ export default function OrderPage() {
         setFile(null);
         setModelInfo(null);
         loadedRef.current = false;
+        setPaymentConfirmed(false);
+        setPaymentNumber('');
         router.push('/order-confirmation');
       } else {
         const errData = await res.json();
@@ -230,7 +270,6 @@ export default function OrderPage() {
     }
   };
 
-  // ==================== ОБРОБКА ФАЙЛУ ====================
   const handleFileSelect = (file: File | null) => {
     setFile(file);
     if (!file) {
@@ -246,31 +285,24 @@ export default function OrderPage() {
     setModelInfo(data);
   };
 
-  // Автоматичне очищення помилок
   useEffect(() => {
     if (form.name.trim() && errors.name) setErrors(prev => ({ ...prev, name: undefined }));
   }, [form.name]);
-
   useEffect(() => {
     if (form.phone.trim() && errors.phone) setErrors(prev => ({ ...prev, phone: undefined }));
   }, [form.phone]);
-
   useEffect(() => {
     if (form.city.trim() && errors.city) setErrors(prev => ({ ...prev, city: undefined }));
   }, [form.city]);
-
   useEffect(() => {
     if (form.warehouse.trim() && errors.warehouse) setErrors(prev => ({ ...prev, warehouse: undefined }));
   }, [form.warehouse]);
-
   useEffect(() => {
     if (weight > 0 && errors.weight) setErrors(prev => ({ ...prev, weight: undefined }));
   }, [weight]);
-
   useEffect(() => {
     if (quantity >= 1 && errors.quantity) setErrors(prev => ({ ...prev, quantity: undefined }));
   }, [quantity]);
-
   useEffect(() => {
     if (file) setErrors(prev => ({ ...prev, file: undefined }));
   }, [file]);
@@ -284,22 +316,18 @@ export default function OrderPage() {
           Попередньо розрахувати вартість →
         </button>
         <div className="mt-4 inline-block bg-gray-100 px-6 py-2 rounded-full text-sm text-gray-700 border border-gray-200">
-          📐 Макс. розмір моделі: 25,6 × 25,6 × 25,6 см (об'єм ~16,8 л)
+          📐 Макс. розмір моделі: 25,6 × 25,6 × 25,6 см
         </div>
       </div>
 
       <div className="bg-white p-8 rounded-3xl shadow-xl border border-gray-100">
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* ===== ОСОБИСТІ ДАНІ ===== */}
+          {/* ОСОБИСТІ ДАНІ */}
           <div className="grid md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Ваше ім’я <span className="text-red-500">*</span>
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Ваше ім'я *</label>
               <input
                 type="text"
-                name="name"
-                placeholder="Іван Петренко"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 className={`w-full p-3 bg-gray-50 rounded-xl border ${
@@ -309,13 +337,9 @@ export default function OrderPage() {
               {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Телефон <span className="text-red-500">*</span>
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Телефон *</label>
               <input
                 type="tel"
-                name="phone"
-                placeholder="+38 098 0751707"
                 value={form.phone}
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}
                 className={`w-full p-3 bg-gray-50 rounded-xl border ${
@@ -330,14 +354,12 @@ export default function OrderPage() {
             <label className="block text-sm font-medium text-gray-700 mb-1">Email (необов'язково)</label>
             <input
               type="email"
-              placeholder="ivan@example.com"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
               className="w-full p-3 bg-gray-50 rounded-xl border border-gray-200 focus:border-[#c9a84c] focus:ring-2 focus:ring-[#c9a84c]/30 outline-none transition"
             />
           </div>
 
-          {/* ===== ДОСТАВКА ===== */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Спосіб доставки</label>
             <DeliverySelector
@@ -353,9 +375,7 @@ export default function OrderPage() {
                   warehouse: val.warehouse,
                   delivery: val.deliveryType,
                 });
-                if (errors.city || errors.warehouse) {
-                  setErrors(prev => ({ ...prev, city: undefined, warehouse: undefined }));
-                }
+                if (errors.city || errors.warehouse) setErrors(prev => ({ ...prev, city: undefined, warehouse: undefined }));
               }}
             />
             {form.delivery !== 'pickup' && (
@@ -366,22 +386,19 @@ export default function OrderPage() {
             )}
           </div>
 
-          {/* ===== ОПИС ЗАМОВЛЕННЯ ===== */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Опис замовлення</label>
             <textarea
-              placeholder="Вкажіть розміри, бажаний матеріал, колір, кількість..."
-              rows={4}
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
+              rows={4}
               className="w-full p-3 bg-gray-50 rounded-xl border border-gray-200 focus:border-[#c9a84c] focus:ring-2 focus:ring-[#c9a84c]/30 outline-none transition"
             />
           </div>
 
-          {/* ===== ПАРАМЕТРИ ДРУКУ ===== */}
+          {/* ПАРАМЕТРИ ДРУКУ */}
           <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 space-y-4">
             <h4 className="font-semibold text-[#1a3c34] flex items-center gap-2">🧮 Параметри друку</h4>
-
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700">Матеріал</label>
@@ -395,12 +412,10 @@ export default function OrderPage() {
                   ))}
                 </select>
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-700">Вага моделі (г) *</label>
                 <input
                   type="number"
-                  name="weight"
                   min="1"
                   step="0.1"
                   value={weight}
@@ -416,12 +431,10 @@ export default function OrderPage() {
                   </p>
                 )}
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-700">Кількість</label>
                 <input
                   type="number"
-                  name="quantity"
                   min="1"
                   step="1"
                   value={quantity}
@@ -432,7 +445,6 @@ export default function OrderPage() {
                 />
                 {errors.quantity && <p className="text-red-500 text-sm mt-1">{errors.quantity}</p>}
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-700">Заповнення (%)</label>
                 <input
@@ -449,7 +461,6 @@ export default function OrderPage() {
                   <span>рекомендовано: 20%</span>
                 </div>
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-700">Периметри</label>
                 <input
@@ -466,7 +477,6 @@ export default function OrderPage() {
                   <span>рекомендовано: 2</span>
                 </div>
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-700">Висота шару (мм)</label>
                 <select
@@ -483,7 +493,7 @@ export default function OrderPage() {
               </div>
             </div>
 
-            {/* ===== БЛОК ЗНИЖОК ===== */}
+            {/* БЛОК ЗНИЖОК */}
             <div className="bg-gradient-to-r from-[#1a3c34] to-[#2d5a4b] rounded-xl p-4 text-white shadow-lg w-full">
               <h5 className="font-bold text-[#c9a84c] flex items-center gap-2 mb-2">
                 <span className="text-xl">🎯</span>
@@ -527,7 +537,6 @@ export default function OrderPage() {
               )}
             </div>
 
-            {/* ===== РОЗРАХУНОК ===== */}
             <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4 text-center">
               <p className="text-sm text-gray-600">Орієнтовна вартість:</p>
               <p className="text-3xl font-bold text-[#1a3c34]">{priceData.finalPrice} ₴</p>
@@ -544,11 +553,9 @@ export default function OrderPage() {
             </div>
           </div>
 
-          {/* ===== ФАЙЛ ===== */}
-          <div className="file-upload-container">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Файл моделі <span className="text-red-500">*</span>
-            </label>
+          {/* ФАЙЛ */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Файл моделі *</label>
             <FileUpload
               key={file ? 'has-file' : 'no-file'}
               onFileSelect={handleFileSelect}
@@ -556,18 +563,13 @@ export default function OrderPage() {
               allowedExtensions={ALLOWED_FILE_TYPES}
               maxSize={50 * 1024 * 1024}
               label="Перетягніть 3D-модель або клікніть для вибору"
-              required={false}
             />
             {file && (
               <div className="flex items-center gap-2 mt-2">
                 <p className="text-[#1a3c34] text-sm">✅ Вибрано: {file.name}</p>
                 <button
                   type="button"
-                  onClick={() => {
-                    setFile(null);
-                    setModelInfo(null);
-                    loadedRef.current = false;
-                  }}
+                  onClick={() => { setFile(null); setModelInfo(null); loadedRef.current = false; }}
                   className="text-red-500 hover:text-red-700 text-sm font-medium transition"
                 >
                   ✕
@@ -591,13 +593,61 @@ export default function OrderPage() {
                   <div>Трикутників: {modelInfo.triangleCount?.toLocaleString()}</div>
                 </div>
               )}
-              <p className="text-xs text-gray-400 mt-1">
-                * Об'єм, розміри та кількість трикутників не впливають на ціну – це довідкова інформація.
-              </p>
             </div>
           )}
 
-          {/* ===== УМОВИ ===== */}
+          {/* ===== ОПЛАТА (МАСИВ) ===== */}
+          <div className="bg-gradient-to-r from-amber-50 to-amber-100 border-2 border-amber-300 rounded-xl p-6 space-y-4 shadow-md">
+            <div className="flex items-start gap-3">
+              <span className="text-3xl">💳</span>
+              <div>
+                <h4 className="font-bold text-amber-900 text-xl">Оплата замовлення</h4>
+                <p className="text-amber-800 text-sm">
+                  Для обробки замовлення необхідна повна попередня оплата.
+                </p>
+              </div>
+            </div>
+
+            {/* СТИЛЬНА КНОПКА РЕКВІЗИТІВ */}
+            <button
+              type="button"
+              onClick={() => setShowPaymentModal(true)}
+              className="w-full py-3.5 rounded-xl font-bold text-white bg-gradient-to-r from-[#c9a84c] to-[#b89a3e] shadow-lg shadow-[#c9a84c]/40 hover:shadow-[#c9a84c]/60 hover:scale-[1.02] transition-all duration-200 text-lg flex items-center justify-center gap-3"
+            >
+              <span className="text-2xl">📋</span>
+              Показати реквізити для оплати
+            </button>
+
+            <div className="bg-white p-4 rounded-xl border border-amber-200 space-y-3">
+              <div className="flex items-center gap-4">
+                <input
+                  type="checkbox"
+                  id="paymentConfirm"
+                  checked={paymentConfirmed}
+                  onChange={(e) => setPaymentConfirmed(e.target.checked)}
+                  className="w-5 h-5 text-[#c9a84c] focus:ring-[#c9a84c] border-gray-300 rounded"
+                />
+                <label htmlFor="paymentConfirm" className="text-sm font-medium text-gray-700">
+                  Я підтверджую, що здійснив(ла) повну оплату замовлення
+                </label>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Номер платежу (необов'язково)
+                </label>
+                <input
+                  type="text"
+                  value={paymentNumber}
+                  onChange={(e) => setPaymentNumber(e.target.value)}
+                  placeholder="Наприклад: 1234567890"
+                  className="w-full p-2.5 bg-gray-50 rounded-lg border border-gray-200 focus:border-[#c9a84c] focus:ring-2 focus:ring-[#c9a84c]/30 outline-none transition text-sm"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* УМОВИ */}
           <div className="bg-red-50 p-4 rounded-xl border border-red-200 text-sm text-red-700">
             ⚠️ Повернення браку можливе при наявності відеофіксації несправності при розпаковці.
           </div>
@@ -605,10 +655,12 @@ export default function OrderPage() {
           <Button
             type="submit"
             variant="primary"
-            disabled={isSubmitting}
-            className="w-full py-4 text-lg shadow-lg shadow-[#1a3c34]/20"
+            disabled={isSubmitting || !paymentConfirmed}
+            className={`w-full py-4 text-lg shadow-lg shadow-[#1a3c34]/20 ${
+              !paymentConfirmed ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
           >
-            {isSubmitting ? 'Надсилання...' : 'Надіслати заявку'}
+            {isSubmitting ? 'Надсилання...' : paymentConfirmed ? 'Надіслати заявку' : 'Підтвердіть оплату'}
           </Button>
           {status && (
             <p className={`text-center font-medium ${status.includes('✅') ? 'text-green-600' : status.includes('❌') ? 'text-red-600' : 'text-[#1a3c34]'}`}>
@@ -618,32 +670,23 @@ export default function OrderPage() {
         </form>
       </div>
 
-      {/* ===== МОДАЛКА ===== */}
+      {/* МОДАЛКА ІНДИВІДУАЛЬНО */}
       {showIndividualModal && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
           onClick={() => setShowIndividualModal(false)}
         >
-          <div
-            className="bg-white rounded-3xl max-w-md w-full shadow-2xl p-6"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-bold text-[#1a3c34] flex items-center gap-2">
-                <span className="text-2xl">📐</span>
-                Індивідуальні розробки
+                <span className="text-2xl">📐</span> Індивідуальні розробки
               </h3>
-              <button
-                onClick={() => setShowIndividualModal(false)}
-                className="text-gray-400 hover:text-gray-700 text-2xl transition"
-              >
+              <button onClick={() => setShowIndividualModal(false)} className="text-gray-400 hover:text-gray-700 text-2xl transition">
                 ✕
               </button>
             </div>
             <div className="space-y-3">
-              <p className="text-sm text-gray-700">
-                <span className="font-semibold">Формула розрахунку:</span>
-              </p>
+              <p className="text-sm text-gray-700"><span className="font-semibold">Формула розрахунку:</span></p>
               <p className="font-mono text-sm bg-gray-50 px-3 py-2 rounded-lg border border-gray-200">
                 (матеріал × вага × кількість) × заповнення × периметри × висота шару
               </p>
@@ -662,6 +705,71 @@ export default function OrderPage() {
           </div>
         </div>
       )}
+
+{/* МОДАЛКА РЕКВІЗИТИ – 2 КОЛОНКИ */}
+{showPaymentModal && paymentDetails.length > 0 && (
+  <div
+    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+    onClick={() => setShowPaymentModal(false)}
+  >
+    <div
+      className="bg-white rounded-3xl max-w-4xl w-full shadow-2xl p-6 max-h-[90vh] overflow-y-auto"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="flex justify-between items-center mb-5">
+        <h3 className="text-2xl font-bold text-[#1a3c34] flex items-center gap-2">
+          <span className="text-2xl">💳</span> Реквізити для оплати
+        </h3>
+        <button onClick={() => setShowPaymentModal(false)} className="text-gray-400 hover:text-gray-700 text-2xl transition">
+          ✕
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-200 max-h-96 overflow-y-auto">
+        {paymentDetails.map((detail, idx) => (
+          <div key={idx} className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-sm font-bold text-[#c9a84c]">#{idx + 1}</span>
+              <span className="text-sm font-semibold text-gray-700">{detail.bankName}</span>
+            </div>
+            <div className="space-y-2 text-sm">
+              <div>
+                <p className="text-xs font-medium text-gray-500">Отримувач</p>
+                <p className="text-sm font-semibold text-gray-900 break-words">{detail.recipientName}</p>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-gray-500">IBAN</p>
+                <p className="text-sm font-mono font-bold text-[#1a3c34] break-all">{detail.iban}</p>
+              </div>
+              {detail.edrpou && (
+                <div>
+                  <p className="text-xs font-medium text-gray-500">ЄДРПОУ / РНОКПП</p>
+                  <p className="text-sm font-semibold text-gray-900">{detail.edrpou}</p>
+                </div>
+              )}
+              {detail.paymentPurpose && (
+                <div>
+                  <p className="text-xs font-medium text-gray-500">Призначення</p>
+                  <p className="text-sm font-semibold text-gray-900">{detail.paymentPurpose}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+        <div className="md:col-span-2 bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-800">
+          ⚠️ Після оплати вкажіть номер платежу в полі вище та підтвердіть оплату.
+        </div>
+      </div>
+
+      <button
+        onClick={() => setShowPaymentModal(false)}
+        className="mt-5 w-full py-3 bg-[#1a3c34] text-white rounded-xl font-bold text-base hover:bg-[#2d5a4b] transition"
+      >
+        Закрити
+      </button>
+    </div>
+  </div>
+)}
 
       <CalculatorModal isOpen={calcOpen} onClose={() => setCalcOpen(false)} />
     </div>

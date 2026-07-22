@@ -10,8 +10,9 @@ const navItems = [
   { href: '/admin', label: 'Головна', icon: '🏠' },
   { href: '/admin/services', label: 'Послуги', icon: '🖨️' },
   { href: '/admin/printers', label: 'Принтери', icon: '🖥️' },
-  { href: '/admin/gallery', label: 'Каталог', icon: '🖼️' },
+  { href: '/admin/catalog', label: 'Каталог', icon: '📦' },
   { href: '/admin/contacts', label: 'Контакти', icon: '📞' },
+  { href: '/admin/payment', label: 'Оплата', icon: '💳' },
   { href: '/admin/orders', label: 'Заявки', icon: '📋' },
 ];
 
@@ -20,19 +21,16 @@ export default function Sidebar() {
   const isMobile = useMediaQuery('(max-width: 768px)');
   const [isOpen, setIsOpen] = useState(false);
 
-  // Закриваємо меню при зміні маршруту на мобільному
   useEffect(() => {
     if (isMobile) setIsOpen(false);
   }, [pathname, isMobile]);
 
-  // Закриваємо меню при зміні розміру вікна на десктоп
   useEffect(() => {
     if (!isMobile) setIsOpen(false);
   }, [isMobile]);
 
   const toggleMenu = () => setIsOpen(!isOpen);
 
-  // На десктопі – завжди показуємо повну навігацію
   if (!isMobile) {
     return (
       <aside className="w-64 bg-[#1a3c34] text-white min-h-screen flex flex-col fixed left-0 top-0 z-50">
@@ -79,10 +77,9 @@ export default function Sidebar() {
     );
   }
 
-  // На мобільному – оверлей з кнопкою
+  // Мобільна версія аналогічно...
   return (
     <>
-      {/* Кнопка-бургер */}
       <button
         onClick={toggleMenu}
         className="fixed top-4 left-4 z-50 p-2 bg-[#1a3c34] text-white rounded-lg shadow-lg hover:bg-[#2d5a4b] transition"
@@ -93,7 +90,6 @@ export default function Sidebar() {
         </svg>
       </button>
 
-      {/* Затемнення фону */}
       {isOpen && (
         <div
           className="fixed inset-0 bg-black/50 z-40"
@@ -101,7 +97,6 @@ export default function Sidebar() {
         />
       )}
 
-      {/* Бічна панель, що виїжджає */}
       <aside
         className={`fixed top-0 left-0 h-full w-64 bg-[#1a3c34] text-white z-50 transition-transform duration-300 ease-in-out ${
           isOpen ? 'translate-x-0' : '-translate-x-full'

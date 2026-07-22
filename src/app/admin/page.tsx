@@ -15,6 +15,12 @@ const blockNames: Record<string, string> = {
   finalCTA: 'Готові втілити ідею?',
 };
 
+// Мапа кастомних редакторів (для блоків зі складною структурою)
+const customEditors: Record<string, string> = {
+  pricing: '/admin/content/pricing',
+  // можна додати інші, наприклад: services: '/admin/services', gallery: '/admin/gallery' тощо
+};
+
 export default function AdminPage() {
   const { data: session, status } = useSession();
   const [blocks, setBlocks] = useState<any[]>([]);
@@ -111,12 +117,13 @@ export default function AdminPage() {
           {blocks.map((item) => {
             const data = item.data || {};
             const name = blockNames[item.key] || item.key;
+            const editHref = customEditors[item.key] || `/admin/content/${item.key}`;
             return (
               <div key={item.key} className="bg-white rounded-xl shadow border border-gray-200 p-6">
                 <div className="flex justify-between items-start">
                   <h2 className="text-xl font-bold text-[#1a3c34]">{name}</h2>
                   <Link
-                    href={`/admin/content/${item.key}`}
+                    href={editHref}
                     className="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition"
                   >
                     Редагувати
