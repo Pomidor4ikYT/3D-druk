@@ -1,8 +1,32 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
-export default function Footer({ contacts }: { contacts?: any }) {
+export default function Footer() {
+  const [contacts, setContacts] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchContacts() {
+      try {
+        const res = await fetch('/api/admin/content');
+        if (!res.ok) throw new Error('Failed to fetch contacts');
+        const items = await res.json();
+        const contactsItem = items.find((item: any) => item.key === 'contacts');
+        setContacts(contactsItem?.data || null);
+      } catch (err) {
+        console.error('Помилка завантаження контактів у футері:', err);
+        // Якщо помилка – використовуємо дефолтні контакти
+        setContacts(null);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchContacts();
+  }, []);
+
+  // Дефолтні контакти (якщо ще не завантажилися або сталася помилка)
   const c = contacts || {
     phone: '+38 098 0751707',
     email: 'komarnytskiy.yura@gmail.com',
@@ -15,6 +39,7 @@ export default function Footer({ contacts }: { contacts?: any }) {
     ],
   };
 
+  // Забезпечуємо наявність socialLinks
   let socialLinks = c.socialLinks;
   if (!socialLinks || !Array.isArray(socialLinks) || socialLinks.length === 0) {
     socialLinks = [];
@@ -24,11 +49,8 @@ export default function Footer({ contacts }: { contacts?: any }) {
   }
 
   const getIconSrc = (iconName: string) => {
-    // Спершу пробуємо локальний файл
     const localPath = `/images/icons/${iconName}.svg`;
-    // Якщо локального немає – використовуємо CDN
     const cdnUrl = `https://cdn.simpleicons.org/${iconName.toLowerCase()}`;
-    // Повертаємо локальний шлях, але з fallback через onError
     return localPath;
   };
 
@@ -128,13 +150,11 @@ export default function Footer({ contacts }: { contacts?: any }) {
                       alt={link.name}
                       className="w-5 h-5 filter brightness-0 invert group-hover:brightness-100 group-hover:invert-0 transition"
                       onError={(e) => {
-                        // Якщо локальний файл не знайдено – пробуємо CDN
                         const img = e.target as HTMLImageElement;
                         if (!img.dataset.fallback) {
                           img.dataset.fallback = 'true';
                           img.src = cdnFallback;
                         } else {
-                          // Якщо CDN теж не спрацював – показуємо емодзі
                           img.style.display = 'none';
                           const parent = img.parentNode;
                           if (parent) {

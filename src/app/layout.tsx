@@ -47,7 +47,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <main>
             <PageTransition>{children}</PageTransition>
           </main>
-          <Footer contacts={contacts} />
+          <Footer />
           <AIConsultant />
         </SessionProviderWrapper>
       </body>
